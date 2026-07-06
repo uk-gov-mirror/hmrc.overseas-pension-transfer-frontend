@@ -22,7 +22,7 @@ import models.TransferNumber
 
 import java.util.UUID
 
-object TransferBackendStub extends SpecBase{
+object TransferBackendStub extends SpecBase {
 
   val transferNumber: TransferNumber = TransferNumber(UUID.randomUUID().toString)
 

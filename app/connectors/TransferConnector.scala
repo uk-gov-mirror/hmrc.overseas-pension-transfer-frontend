@@ -17,12 +17,16 @@
 package connectors
 
 import config.FrontendAppConfig
-import connectors.parsers.TransferParser.{GetAllTransfersHttpReads, GetAllTransfersType}
-import models.responses.AllTransfersUnexpectedError
+import connectors.parsers.TransferParser.GetAllTransfersType
+import models.dtos.GetAllTransfersDTO
+import models.responses.{AllTransfersUnexpectedError, InternalServerError, NoTransfersFound}
 import models.{PstrNumber, SrnNumber}
 import play.api.Logging
+import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND, OK}
+import play.api.libs.json.{JsError, JsSuccess}
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps, UpstreamErrorResponse}
 import utils.DownstreamLogging
 
 import java.net.URL
@@ -31,7 +35,8 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class TransferConnector @Inject() (
   appConfig: FrontendAppConfig,
-  http: HttpClientV2
+  http: HttpClientV2,
+  httpResponse: HttpClientResponse
 ) extends Logging
     with DownstreamLogging {
 
@@ -42,13 +47,51 @@ class TransferConnector @Inject() (
     def allTransfersUrl: URL =
       url"${appConfig.backendService}/get-all-transfers/${pstrNumber.value}"
 
-    http
-      .get(allTransfersUrl)
-      .setHeader("schemeReferenceNumber" -> srnNumber.value)
-      .execute[GetAllTransfersType]
-      .recover { case e: Exception =>
-        val errMsg = logNonHttpError("[TransferConnector][getAllTransfers]", hc, e)
-        Left(AllTransfersUnexpectedError(errMsg, None))
+    httpResponse
+      .read(
+        http
+          .get(allTransfersUrl)
+          .setHeader("schemeReferenceNumber" -> srnNumber.value)
+          .execute[Either[UpstreamErrorResponse, HttpResponse]]
+      )
+      .value
+      .map {
+        case Left(x: UpstreamErrorResponse) =>
+          x.statusCode match {
+            case NOT_FOUND             =>
+              Left(NoTransfersFound)
+            case INTERNAL_SERVER_ERROR =>
+              Left(InternalServerError)
+            case statusCode            =>
+              Left(AllTransfersUnexpectedError(s"Unexpected status code returned from backend: $statusCode", None))
+          }
+        case Right(x)                       =>
+          validateAndPartitionDTO(x)
       }
   }
+
+  private def validateAndPartitionDTO(x: HttpResponse) =
+    x.status match {
+      case OK         =>
+        x.json.validate[GetAllTransfersDTO] match {
+          case JsError(errors)   =>
+            val formatted = formatJsonErrors(errors)
+            logger.warn(
+              s"[TransferConnector][getAllTransfers] Unable to parse Json as GetAllTransfersDTO: $formatted"
+            )
+            Left(AllTransfersUnexpectedError("Unable to parse Json as GetAllTransfersDTO", Some(formatted)))
+          case JsSuccess(dto, _) =>
+            val (valid, notValid) = dto.transfers.partition(_.isValid)
+            if (notValid.nonEmpty) {
+              logger.warn(
+                s"[TransferConnector][getAllTransfers] Dropping ${notValid.size} " +
+                  s"invalid transfer items (must have exactly one of submissionDate or lastUpdated)."
+              )
+            }
+            Right(dto.copy(transfers = valid))
+        }
+      case statusCode =>
+        logger.warn(s"[TransferConnector][getAllTransfers] Unexpected status code return: $statusCode")
+        Left(AllTransfersUnexpectedError(s"Unexpected status code returned from backend: $statusCode", None))
+    }
 }
