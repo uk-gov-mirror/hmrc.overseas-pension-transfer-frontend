@@ -16,29 +16,29 @@
 
 package connectors
 
-import models.authentication.PsaId
-import models.authentication.PspId
-import uk.gov.hmrc.http.HttpReads.Implicits._
 import config.FrontendAppConfig
-import play.api.Logging
 import models.MinimalDetails
-import uk.gov.hmrc.http.client.HttpClientV2
+import models.authentication.{PsaId, PspId}
 import play.api.http.Status.NOT_FOUND
-import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.http.StringContextOps
-import uk.gov.hmrc.http.UpstreamErrorResponse
-
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
+import play.api.libs.json.{JsError, JsSuccess}
+import uk.gov.hmrc.http.HttpReads.Implicits.*
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps, UpstreamErrorResponse}
+import utils.DownstreamLogging
 
 import javax.inject.Inject
+import scala.concurrent.{ExecutionContext, Future}
 
 sealed trait MinimalDetailsError
 
 case object UpstreamError extends MinimalDetailsError
 case object DetailsNotFound extends MinimalDetailsError
 
-class MinimalDetailsConnector @Inject() (appConfig: FrontendAppConfig, http: HttpClientV2) extends Logging {
+class MinimalDetailsConnector @Inject() (
+  appConfig: FrontendAppConfig,
+  http: HttpClientV2,
+  httpClientResponse: HttpClientResponse
+) extends DownstreamLogging {
 
   private val url = url"${appConfig.pensionAdministratorHost}/pension-administrator/get-minimal-details-self"
 
@@ -57,16 +57,30 @@ class MinimalDetailsConnector @Inject() (appConfig: FrontendAppConfig, http: Htt
     idValue: String,
     loggedInAsPsa: Boolean
   )(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Either[MinimalDetailsError, MinimalDetails]] =
-    http
-      .get(url)
-      .setHeader(idType -> idValue, "loggedInAsPsa" -> loggedInAsPsa.toString)
-      .execute[MinimalDetails]
-      .map(Right(_))
-      .recover {
-        case e: UpstreamErrorResponse if e.statusCode == NOT_FOUND && e.message.contains("no match found") =>
-          Left(DetailsNotFound)
-        case e                                                                                             =>
-          logger.error(s"[MinimalDetailsConnector][fetch] Upstream error occurred ${e.getMessage}", e)
-          Left(UpstreamError)
+    httpClientResponse
+      .read(
+        http
+          .get(url)
+          .setHeader(idType -> idValue, "loggedInAsPsa" -> loggedInAsPsa.toString)
+          .execute[Either[UpstreamErrorResponse, HttpResponse]]
+      )
+      .value
+      .map {
+        case Left(x: UpstreamErrorResponse) =>
+          x.statusCode match {
+            case NOT_FOUND if x.message.contains("no match found") => Left(DetailsNotFound)
+            case _                                                 =>
+              logger.error(s"[MinimalDetailsConnector][fetch] Upstream error occurred ${x.message}", x)
+              Left(UpstreamError)
+          }
+        case Right(x: HttpResponse)         =>
+          x.json.validate[MinimalDetails] match {
+            case JsError(err)        =>
+              logger.warn(
+                s"[MinimalDetailsConnector][fetch] Unable to parse Json as GetAllTransfersDTO: ${formatJsonErrors(err)}"
+              )
+              Left(UpstreamError)
+            case JsSuccess(value, _) => Right(value)
+          }
       }
 }
