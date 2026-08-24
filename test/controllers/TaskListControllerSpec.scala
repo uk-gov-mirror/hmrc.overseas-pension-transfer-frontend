@@ -48,6 +48,7 @@ class TaskListControllerSpec extends AnyFreeSpec with SpecBase with SummaryListF
 
     "fromDashboard" - {
       "must redirect to TaskList onPageLoad and set new session data" in {
+        when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
 
         val app =
           applicationBuilder()

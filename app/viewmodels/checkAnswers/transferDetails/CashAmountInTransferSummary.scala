@@ -33,14 +33,16 @@ object CashAmountInTransferSummary {
   ): Option[SummaryListRow] =
     answers.get(CashAmountInTransferPage).map { answer =>
       val actions =
-        if (showChangeLink)
+        if (showChangeLink) {
           Seq(
             ActionItemViewModel(
               "site.change",
               AssetsMiniJourneysRoutes.CashAmountInTransferController.onPageLoad(mode).url
             ).withVisuallyHiddenText(messages("cashAmountInTransfer.change.hidden"))
           )
-        else Seq.empty
+        } else {
+          Seq.empty
+        }
 
       SummaryListRowViewModel(
         key = "cashAmountInTransfer.checkYourAnswersLabel",

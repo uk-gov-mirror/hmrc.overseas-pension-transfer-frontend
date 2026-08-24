@@ -41,14 +41,14 @@ private[mappings] class LocalDateFormatter(
 
   private val fieldKeys: List[String] = List("day", "month", "year")
 
-  val monthFormatter = new MonthFormatter(
+  private val monthFormatter = new MonthFormatter(
     invalidKey,
     invalidCharacter,
     realDateKey,
     args
   )
 
-  def validMaxDay(isLeapYear: Boolean) = Map(
+  private def validMaxDay(isLeapYear: Boolean) = Map(
     Month.JANUARY   -> 31,
     Month.FEBRUARY  -> (if (isLeapYear) 29 else 28),
     Month.MARCH     -> 31,
@@ -86,7 +86,9 @@ private[mappings] class LocalDateFormatter(
         val validDay         = day >= 1 && day <= 31
         val validDayForMonth = if (validMonth) {
           day >= 1 && day <= validMaxDay(isLeapYear)(Month.of(month))
-        } else true
+        } else {
+          true
+        }
 
         val dayError   =
           if (!validDay || !validDayForMonth) Some(FormError(key, realDateKey, Seq("day") ++ args)) else None

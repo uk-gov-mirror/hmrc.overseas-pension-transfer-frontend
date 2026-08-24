@@ -30,7 +30,7 @@ class PropertyDescriptionFormProvider @Inject() extends Mappings with Regex {
     Form(
       "value" -> text("propertyDescription.error.required")
         .transform[String](input => input.trim, identity)
-        .verifying(maxLength(maxLen, "propertyDescription.error.length"))
+        .verifying(maxLength("propertyDescription.error.length", maxLen))
         .verifying(regexp(descriptionRegex, "propertyDescription.error.pattern"))
     )
 }

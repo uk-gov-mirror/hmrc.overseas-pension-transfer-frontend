@@ -30,11 +30,11 @@ class MemberNameFormProvider @Inject() extends Mappings with Regex {
     mapping(
       "memberFirstName" -> text("memberName.error.memberFirstName.required")
         .transform[String](input => input.trim, identity)
-        .verifying(maxLength(35, "memberName.error.memberFirstName.length"))
+        .verifying(maxLength("memberName.error.memberFirstName.length"))
         .verifying(regexp(nameRegex, "memberName.error.memberFirstName.pattern")),
       "memberLastName"  -> text("memberName.error.memberLastName.required")
         .transform[String](input => input.trim, identity)
-        .verifying(maxLength(35, "memberName.error.memberLastName.length"))
+        .verifying(maxLength("memberName.error.memberLastName.length"))
         .verifying(regexp(nameRegex, "memberName.error.memberLastName.pattern"))
     )(PersonName.apply)(x => Some((x.firstName, x.lastName)))
   )

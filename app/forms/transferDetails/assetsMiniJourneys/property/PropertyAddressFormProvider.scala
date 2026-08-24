@@ -68,14 +68,14 @@ class PropertyAddressFormProvider @Inject() extends Mappings with Regex with App
   private[property] def addressLineMapping(line: Int): (String, Mapping[String]) =
     s"addressLine$line" -> text(s"propertyAddress.error.addressLine$line.required")
       .transform[String](input => input.trim, identity)
-      .verifying(maxLength(35, s"common.addressInput.error.addressLine$line.length"))
+      .verifying(maxLength(s"common.addressInput.error.addressLine$line.length"))
       .verifying(regexp(addressLinesRegex, s"common.addressInput.error.addressLine$line.pattern"))
 
   private[property] def optionalAddressLineMapping(line: Int): (String, Mapping[Option[String]]) =
     s"addressLine$line" -> optional(
       Forms.text
         .transform[String](input => input.trim, identity)
-        .verifying(maxLength(35, s"common.addressInput.error.addressLine$line.length"))
+        .verifying(maxLength(s"common.addressInput.error.addressLine$line.length"))
         .verifying(regexp(addressLinesRegex, s"common.addressInput.error.addressLine$line.pattern"))
     )
 
@@ -88,7 +88,7 @@ class PropertyAddressFormProvider @Inject() extends Mappings with Regex with App
         raw => formatUkPostcode(raw),
         formatted => formatted
       )
-      .verifying(maxLength(35, "common.addressInput.error.postcode.length"))
+      .verifying(maxLength("common.addressInput.error.postcode.length"))
       .verifying(
         "membersLastUKAddress.error.postcode.incorrect",
         { postcode =>

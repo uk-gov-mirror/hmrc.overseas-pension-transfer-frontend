@@ -63,6 +63,8 @@ class UnquotedSharesConfirmRemovalControllerSpec extends AnyFreeSpec with SpecBa
       val application = applicationBuilder(userAnswers = userAnswers).build()
       when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
 
+      when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
+
       running(application) {
         val request =
           FakeRequest(POST, AssetsMiniJourneysRoutes.UnquotedSharesConfirmRemovalController.onPageLoad(0).url)

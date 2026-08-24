@@ -27,26 +27,26 @@ import utils.CurrencyFormats
 import java.time.LocalDate
 
 class ConstraintsSpec extends AnyFreeSpec with Matchers with ScalaCheckPropertyChecks with Generators with Constraints {
-
+  val lineLength = 10
   "firstError" - {
 
     "must return Valid when all constraints pass" in {
-      val result = firstError(maxLength(10, "error.length"), regexp("""^\w+$""", "error.regexp"))("foo")
+      val result = firstError(maxLength("error.length", lineLength), regexp("""^\w+$""", "error.regexp"))("foo")
       result mustEqual Valid
     }
 
     "must return Invalid when the first constraint fails" in {
-      val result = firstError(maxLength(10, "error.length"), regexp("""^\w+$""", "error.regexp"))("a" * 11)
-      result mustEqual Invalid("error.length", 10)
+      val result = firstError(maxLength("error.length", lineLength), regexp("""^\w+$""", "error.regexp"))("a" * 36)
+      result mustEqual Invalid("error.length", lineLength)
     }
 
     "must return Invalid when the second constraint fails" in {
-      val result = firstError(maxLength(10, "error.length"), regexp("""^\w+$""", "error.regexp"))("")
+      val result = firstError(maxLength("error.length", lineLength), regexp("""^\w+$""", "error.regexp"))("")
       result mustEqual Invalid("error.regexp", """^\w+$""")
     }
 
     "must return Invalid for the first error when both constraints fail" in {
-      val result = firstError(maxLength(-1, "error.length"), regexp("""^\w+$""", "error.regexp"))("")
+      val result = firstError(maxLength("error.length", -1), regexp("""^\w+$""", "error.regexp"))("")
       result mustEqual Invalid("error.length", -1)
     }
   }
@@ -103,33 +103,34 @@ class ConstraintsSpec extends AnyFreeSpec with Matchers with ScalaCheckPropertyC
   "maxLength" - {
 
     "must return Valid for a string shorter than the allowed length" in {
-      val result = maxLength(10, "error.length")("a" * 9)
+      val result = maxLength("error.length", lineLength)("a" * 9)
       result mustEqual Valid
     }
 
     "must return Valid for an empty string" in {
-      val result = maxLength(10, "error.length")("")
+      val result = maxLength("error.length", lineLength)("")
       result mustEqual Valid
     }
 
     "must return Valid for a string equal to the allowed length" in {
-      val result = maxLength(10, "error.length")("a" * 10)
+      val result = maxLength("error.length", lineLength)("a" * 10)
       result mustEqual Valid
     }
 
     "must return Invalid for a string longer than the allowed length" in {
-      val result = maxLength(10, "error.length")("a" * 11)
-      result mustEqual Invalid("error.length", 10)
+      val result = maxLength("error.length", lineLength)("a" * 11)
+      result mustEqual Invalid("error.length", lineLength)
     }
   }
-
+  val startDate: LocalDate = LocalDate.of(2000, 1, 1)
+  val endDate: LocalDate   = LocalDate.of(3000, 1, 1)
   "maxDate" - {
 
     "must return Valid for a date before or equal to the maximum" in {
 
       val gen: Gen[(LocalDate, LocalDate)] = for {
-        max  <- datesBetween(LocalDate.of(2000, 1, 1), LocalDate.of(3000, 1, 1))
-        date <- datesBetween(LocalDate.of(2000, 1, 1), max)
+        max  <- datesBetween(startDate, endDate)
+        date <- datesBetween(startDate, max)
       } yield (max, date)
 
       forAll(gen) { case (max, date) =>
@@ -141,8 +142,8 @@ class ConstraintsSpec extends AnyFreeSpec with Matchers with ScalaCheckPropertyC
     "must return Invalid for a date after the maximum" in {
 
       val gen: Gen[(LocalDate, LocalDate)] = for {
-        max  <- datesBetween(LocalDate.of(2000, 1, 1), LocalDate.of(3000, 1, 1))
-        date <- datesBetween(max.plusDays(1), LocalDate.of(3000, 1, 2))
+        max  <- datesBetween(startDate, endDate)
+        date <- datesBetween(max.plusDays(1), endDate)
       } yield (max, date)
 
       forAll(gen) { case (max, date) =>
@@ -157,8 +158,8 @@ class ConstraintsSpec extends AnyFreeSpec with Matchers with ScalaCheckPropertyC
     "must return Valid for a date after or equal to the minimum" in {
 
       val gen: Gen[(LocalDate, LocalDate)] = for {
-        min  <- datesBetween(LocalDate.of(2000, 1, 1), LocalDate.of(3000, 1, 1))
-        date <- datesBetween(min, LocalDate.of(3000, 1, 1))
+        min  <- datesBetween(startDate, endDate)
+        date <- datesBetween(min, endDate)
       } yield (min, date)
 
       forAll(gen) { case (min, date) =>
@@ -170,8 +171,8 @@ class ConstraintsSpec extends AnyFreeSpec with Matchers with ScalaCheckPropertyC
     "must return Invalid for a date before the minimum" in {
 
       val gen: Gen[(LocalDate, LocalDate)] = for {
-        min  <- datesBetween(LocalDate.of(2000, 1, 2), LocalDate.of(3000, 1, 1))
-        date <- datesBetween(LocalDate.of(2000, 1, 1), min.minusDays(1))
+        min  <- datesBetween(startDate, endDate)
+        date <- datesBetween(startDate, min.minusDays(1))
       } yield (min, date)
 
       forAll(gen) { case (min, date) =>
