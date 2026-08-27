@@ -16,27 +16,31 @@
 
 package connectors
 
-import models.authentication.AuthenticatedUser
-import models.authentication.PsaUser
-import models.authentication.PspUser
-import models.responses.PensionSchemeErrorResponse
-import uk.gov.hmrc.http.HttpReads.Implicits._
 import com.google.inject.Inject
 import config.FrontendAppConfig
-import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.http.StringContextOps
+import connectors.parsers.PensionSchemeParser.*
+import models.PensionSchemeResponse
+import models.authentication.{AuthenticatedUser, PsaId, PsaUser, PspUser}
+import models.responses.{PensionSchemeErrorResponse, PensionSchemeNotAssociated}
+import play.api.http.Status.{NOT_FOUND, OK}
+import play.api.libs.json.{JsError, JsSuccess, Reads, __}
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps, UpstreamErrorResponse}
 import utils.DownstreamLogging
-import connectors.parsers.PensionSchemeParser._
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 class PensionSchemeConnector @Inject() (
   appConfig: FrontendAppConfig,
-  http: HttpClientV2
+  http: HttpClientV2,
+  httpClientResponse: HttpClientResponse
 )(implicit ec: ExecutionContext)
     extends DownstreamLogging {
+
+  private val authorisingPsaIdFromApiReads: Reads[PsaId] =
+    (__ \ "pspDetails" \ "authorisingPSAID").read[String].map(PsaId.apply)
 
   def checkAssociation(srn: String, user: AuthenticatedUser)(implicit hc: HeaderCarrier): Future[Boolean] = {
     val url        = url"${appConfig.pensionSchemeService}/is-psa-associated"
@@ -45,27 +49,54 @@ class PensionSchemeConnector @Inject() (
         case PsaUser(psaId, _, _) => "psaId" -> psaId.value
         case PspUser(pspId, _, _) => "pspId" -> pspId.value
       }
-
-    http
-      .get(url)
-      .setHeader(
-        "schemeReferenceNumber" -> srn,
-        userHeader
+    httpClientResponse
+      .read(
+        http
+          .get(url)
+          .setHeader(
+            "schemeReferenceNumber" -> srn,
+            userHeader
+          )
+          .execute[Either[UpstreamErrorResponse, HttpResponse]]
       )
-      .execute[Boolean]
+      .value
+      .collect {
+        case Left(x: UpstreamErrorResponse) =>
+          logger.warn(s"[PensionSchemeConnector][checkAssociation] ${x.message}")
+          false
+        case Right(x: HttpResponse)         => Try(x.json.as[Boolean]).getOrElse(false)
+      }
   }
 
   def getAuthorisingPsa(srn: String)(implicit hc: HeaderCarrier): Future[AuthorisingPsaIdType] = {
     val url = url"${appConfig.pensionSchemeService}/psp-scheme/$srn"
-    http
-      .get(url)
-      .setHeader(
-        "srn" -> srn
+
+    httpClientResponse
+      .read(
+        http
+          .get(url)
+          .setHeader(
+            "srn" -> srn
+          )
+          .execute[Either[UpstreamErrorResponse, HttpResponse]]
       )
-      .execute[AuthorisingPsaIdType]
-      .recover { case e: Exception =>
-        val errMsg = logNonHttpError("[PensionSchemeConnector][getAuthorisingPsa]", hc, e)
-        Left(PensionSchemeErrorResponse(errMsg, None))
+      .value
+      .collect {
+        case Left(x: UpstreamErrorResponse) if x.statusCode == NOT_FOUND => Left(new PensionSchemeNotAssociated)
+        case Left(x: UpstreamErrorResponse)                              =>
+          logger.warn(s"[PensionSchemeConnector][getAuthorisingPsa] ${x.message}")
+          Left(PensionSchemeErrorResponse(x.message, None))
+        case Right(x: HttpResponse) if x.status == OK                    =>
+          x.json.validate[PsaId](authorisingPsaIdFromApiReads) match {
+            case JsSuccess(value, _) =>
+              Right(value)
+            case JsError(errors)     =>
+              val formatted = formatJsonErrors(errors)
+              logger.warn(
+                s"[PensionSchemeConnector][getAuthorisingPsaId] Unable to parse JSON as AuthorisingPsaId: $formatted"
+              )
+              Left(PensionSchemeErrorResponse("Unable to parse JSON as AuthorisingPsaId", Some(formatted)))
+          }
       }
   }
 
@@ -78,15 +109,31 @@ class PensionSchemeConnector @Inject() (
       case PspUser(_, _, _) => (url"${appConfig.pensionSchemeService}/psp-scheme/$srn", Seq("srn" -> srn))
     }
 
-    http
-      .get(url)
-      .setHeader(
-        headers: _*
+    httpClientResponse
+      .read(
+        http
+          .get(url)
+          .setHeader(
+            headers: _*
+          )
+          .execute[Either[UpstreamErrorResponse, HttpResponse]]
       )
-      .execute[PensionSchemeDetailsType]
-      .recover { case e: Exception =>
-        val errMsg = logNonHttpError("[PensionSchemeConnector][getSchemeDetails]", hc, e)
-        Left(PensionSchemeErrorResponse(errMsg, None))
+      .value
+      .collect {
+        case Left(x: UpstreamErrorResponse) if x.statusCode == NOT_FOUND => Left(new PensionSchemeNotAssociated)
+        case Right(x: HttpResponse) if x.status == OK                    =>
+          x.json.validate[PensionSchemeResponse] match {
+            case JsSuccess(value, _) => Right(value)
+            case JsError(errors)     =>
+              val formatted = formatJsonErrors(errors)
+              logger.warn(
+                s"[PensionSchemeConnector][getSchemeDetails] Unable to parse JSON as PensionSchemeData: $formatted"
+              )
+              Left(PensionSchemeErrorResponse("Unable to parse JSON as PensionSchemeData", Some(formatted)))
+          }
+        case Left(x: UpstreamErrorResponse)                              =>
+          logger.warn(s"[PensionSchemeConnector][getSchemeDetails] ${x.message}")
+          Left(PensionSchemeErrorResponse(x.message, None))
       }
   }
 }

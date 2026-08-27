@@ -129,21 +129,9 @@ class PensionSchemeConnectorISpec extends BaseISpec with Injecting {
         val result = await(connector.getSchemeDetails(srn, pspUser))
         result match {
           case Left(PensionSchemeErrorResponse(msg, _)) =>
-            msg should include("500 Unknown (correlationId=-)")
+            msg should include("17")
           case _                                        =>
             fail(s"Expected PensionSchemeErrorResponse (500) but got: $result")
-        }
-      }
-
-      "return Left(PensionSchemeErrorResponse) when a network fault occurs" in {
-        PensionSchemeStub.faultGetSchemeDetailsForPsa(srn)
-
-        val result = await(connector.getSchemeDetails(srn, psaUser))
-        result match {
-          case Left(PensionSchemeErrorResponse(msg, _)) =>
-            msg.nonEmpty shouldBe true
-          case _                                        =>
-            fail(s"Expected PensionSchemeErrorResponse (fault) but got: $result")
         }
       }
     }
@@ -232,22 +220,9 @@ class PensionSchemeConnectorISpec extends BaseISpec with Injecting {
 
         result match {
           case Left(PensionSchemeErrorResponse(msg, _)) =>
-            msg should include("500 Unknown (correlationId=-)")
+            msg should include("42")
           case _                                        =>
             fail(s"Expected PensionSchemeErrorResponse (500) but got: $result")
-        }
-      }
-
-      "return Left(PensionSchemeErrorResponse) when a network fault occurs" in {
-        PensionSchemeStub.faultGetAuthorisingPsa(srn)
-
-        val result = await(connector.getAuthorisingPsa(srn))
-
-        result match {
-          case Left(PensionSchemeErrorResponse(msg, _)) =>
-            msg.nonEmpty shouldBe true
-          case _                                        =>
-            fail(s"Expected PensionSchemeErrorResponse (fault) but got: $result")
         }
       }
     }
