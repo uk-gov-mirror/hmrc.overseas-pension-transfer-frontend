@@ -17,10 +17,9 @@
 package connectors
 
 import config.FrontendAppConfig
-import connectors.parsers.UserAnswersParser.*
-import models.*
 import models.dtos.{SubmissionDTO, UserAnswersDTO}
 import models.responses.*
+import models.{PstrNumber, QtStatus, SrnNumber, TransferId}
 import org.apache.pekko.Done
 import play.api.Logging
 import play.api.http.Status.{BAD_REQUEST, NOT_FOUND, NO_CONTENT, OK}
@@ -42,6 +41,11 @@ class UserAnswersConnector @Inject() (
   httpClientResponse: HttpClientResponse
 ) extends Logging
     with DownstreamLogging {
+
+  type GetUserAnswersType    = Either[UserAnswersError, UserAnswersDTO]
+  type SetUserAnswersType    = Either[UserAnswersError, Done]
+  type SubmissionType        = Either[SubmissionErrorResponse, SubmissionResponse]
+  type DeleteUserAnswersType = Either[UserAnswersError, Done]
 
   // These two versions of getAnswers are purposely similar to one another as it is recommended to combine these two in a future refactor
   def getAnswers(transferId: String, srnNumber: SrnNumber)(implicit

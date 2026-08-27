@@ -17,9 +17,8 @@
 package connectors
 
 import config.FrontendAppConfig
-import connectors.parsers.TransferParser.GetAllTransfersType
 import models.dtos.GetAllTransfersDTO
-import models.responses.{AllTransfersUnexpectedError, InternalServerError, NoTransfersFound}
+import models.responses.{AllTransfersUnexpectedError, InternalServerError, NoTransfersFound, TransferError}
 import models.{PstrNumber, SrnNumber}
 import play.api.Logging
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND, OK}
@@ -39,6 +38,8 @@ class TransferConnector @Inject() (
   httpResponse: HttpClientResponse
 ) extends Logging
     with DownstreamLogging {
+
+  type GetAllTransfersType = Either[TransferError, GetAllTransfersDTO]
 
   def getAllTransfers(srnNumber: SrnNumber, pstrNumber: PstrNumber)(implicit
     hc: HeaderCarrier,

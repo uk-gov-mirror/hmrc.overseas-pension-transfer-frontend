@@ -18,10 +18,9 @@ package connectors
 
 import com.google.inject.Inject
 import config.FrontendAppConfig
-import connectors.parsers.PensionSchemeParser.*
 import models.PensionSchemeResponse
 import models.authentication.{AuthenticatedUser, PsaId, PsaUser, PspUser}
-import models.responses.{PensionSchemeErrorResponse, PensionSchemeNotAssociated}
+import models.responses.{PensionSchemeError, PensionSchemeErrorResponse, PensionSchemeNotAssociated}
 import play.api.http.Status.{NOT_FOUND, OK}
 import play.api.libs.json.{JsError, JsSuccess, Reads, __}
 import uk.gov.hmrc.http.HttpReads.Implicits.*
@@ -38,6 +37,9 @@ class PensionSchemeConnector @Inject() (
   httpClientResponse: HttpClientResponse
 )(implicit ec: ExecutionContext)
     extends DownstreamLogging {
+
+  type PensionSchemeDetailsType = Either[PensionSchemeError, PensionSchemeResponse]
+  type AuthorisingPsaIdType     = Either[PensionSchemeError, PsaId]
 
   private val authorisingPsaIdFromApiReads: Reads[PsaId] =
     (__ \ "pspDetails" \ "authorisingPSAID").read[String].map(PsaId.apply)
