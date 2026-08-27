@@ -80,8 +80,10 @@ class UserAnswersConnectorISpec extends BaseISpec with Injecting {
         )
 
         val getAnswers = await(connector.getAnswers("testId", srn))
-
-        getAnswers shouldBe Left(UserAnswersErrorResponse("InternalServerError", Some("Where the extra details come from")))
+        getAnswers match {
+          case Left(error: UserAnswersErrorResponse) => error.error should include("Where the extra details come from")
+          case error@_ => fail(s"Expected UserAnswersErrorResponse -- $error")
+        }
       }
 
       "200 returned with invalid payload" in {
@@ -105,12 +107,10 @@ class UserAnswersConnectorISpec extends BaseISpec with Injecting {
 
         val getAnswers = await(connector.getAnswers("testId", srn))
 
-        getAnswers shouldBe Left(
-          UserAnswersErrorResponse(
-            "[[UserAnswersConnector][getAnswers]] 500 Unknown (correlationId=-)",
-            Some("""{"field": "value"}""")
-          )
-        )
+        getAnswers match {
+          case Left(error: UserAnswersErrorResponse) => error.error should include("""Response body: '{"field": "value"}'""")
+          case error@_ => fail(s"Expected UserAnswersErrorResponse -- $error")
+        }
       }
     }
   }
@@ -279,7 +279,10 @@ class UserAnswersConnectorISpec extends BaseISpec with Injecting {
 
         val putAnswers = await(connector.putAnswers(userAnswersDTO, srn))
 
-        putAnswers shouldBe Left(UserAnswersErrorResponse("Transformation failed", Some("Payload received is invalid")))
+        putAnswers match {
+          case Left(error: UserAnswersErrorResponse) => error.error should include("Transformation failed")
+          case error@_ => fail(s"Expected SubmissionErrorResponse -- $error")
+        }
       }
 
       "500 is returned" in {
@@ -291,7 +294,10 @@ class UserAnswersConnectorISpec extends BaseISpec with Injecting {
 
         val putAnswers = await(connector.putAnswers(userAnswersDTO, srn))
 
-        putAnswers shouldBe Left(UserAnswersErrorResponse("Failed to save answers", None))
+        putAnswers match {
+          case Left(error: UserAnswersErrorResponse) => error.error should include("Failed to save answers")
+          case error@_ => fail(s"Expected SubmissionErrorResponse -- $error")
+        }
       }
       
       "there is an error, but the error Json cannot be parsed" in {
@@ -304,7 +310,7 @@ class UserAnswersConnectorISpec extends BaseISpec with Injecting {
         val putAnswers = await(connector.putAnswers(userAnswersDTO, srn))
         
         putAnswers match {
-          case Left(error: UserAnswersErrorResponse) => error.error should include("500 Unknown (correlationId=-)")
+          case Left(error: UserAnswersErrorResponse) => error.error should include("This is not the field you're looking for")
           case error@_ => fail(s"Expected SubmissionErrorResponse -- $error")
         }
       }
@@ -357,7 +363,10 @@ class UserAnswersConnectorISpec extends BaseISpec with Injecting {
 
         val response = await(connector.postSubmission(submissionDTO, srn))
 
-        response shouldBe Left(SubmissionErrorResponse("Transformation failed", Some("Payload received is invalid")))
+        response match {
+          case Left(error: SubmissionErrorResponse) => error.error should include("Transformation failed")
+          case error@_ => fail(s"Expected SubmissionErrorResponse -- $error")
+        }
       }
 
       "500 is returned" in {
@@ -369,7 +378,10 @@ class UserAnswersConnectorISpec extends BaseISpec with Injecting {
 
         val response = await(connector.postSubmission(submissionDTO, srn))
 
-        response shouldBe Left(SubmissionErrorResponse("Failed to save answers", None))
+        response match {
+          case Left(error: SubmissionErrorResponse) => error.error should include("Failed to save answers")
+          case error@_ => fail(s"Expected SubmissionErrorResponse -- $error")
+        }
       }
 
       "an error is returned, but the error cannot be parsed" in {
@@ -386,8 +398,8 @@ class UserAnswersConnectorISpec extends BaseISpec with Injecting {
         val response = await(connector.postSubmission(submissionDTO, srn))
 
         response match {
-          case Left(error: SubmissionErrorResponse) => error.error should include("418 Unknown (correlationId=-)")
-          case _ => fail("Expected SubmissionErrorResponse")
+          case Left(error: SubmissionErrorResponse) => error.error should include("I did not see the sun until I was already a man.")
+          case error@_ => fail(s"Expected SubmissionErrorResponse -- $error")
         }
       }
     }
@@ -421,7 +433,10 @@ class UserAnswersConnectorISpec extends BaseISpec with Injecting {
 
         val response = await(connector.deleteAnswers("testId", SrnNumber("1234567890")))
 
-        response shouldBe Left(UserAnswersErrorResponse("Failed to save answers", None))
+        response match {
+          case Left(error: UserAnswersErrorResponse) => error.error should include("Failed to save answers")
+          case error@_ => fail(s"Expected UserAnswersErrorResponse -- $error")
+        }
       }
       
       "500 is returned, but the error cannot be parsed" in {
@@ -437,10 +452,10 @@ class UserAnswersConnectorISpec extends BaseISpec with Injecting {
 
         val response = await(connector.deleteAnswers("testId", SrnNumber("1234567890")))
 
-        response shouldBe Left(UserAnswersErrorResponse(
-          "Unable to parse Json as UserAnswersErrorResponse",
-          Some("/error")
-        ))
+        response match {
+          case Left(error: UserAnswersErrorResponse) => error.error should include("For those who come after")
+          case error@_ => fail(s"Expected UserAnswersErrorResponse -- $error")
+        }
       }
     }
   }

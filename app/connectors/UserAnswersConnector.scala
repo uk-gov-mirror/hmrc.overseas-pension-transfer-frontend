@@ -16,50 +16,66 @@
 
 package connectors
 
-import models.responses.SubmissionErrorResponse
-import models.responses.UserAnswersErrorResponse
-import utils.DownstreamLogging
-import uk.gov.hmrc.http.HttpReads.Implicits._
 import config.FrontendAppConfig
-import models.dtos.SubmissionDTO
-import models.dtos.UserAnswersDTO
-import models._
-import uk.gov.hmrc.http.client.HttpClientV2
+import connectors.parsers.UserAnswersParser.*
+import models.*
+import models.dtos.{SubmissionDTO, UserAnswersDTO}
+import models.responses.*
+import org.apache.pekko.Done
 import play.api.Logging
+import play.api.http.Status.{BAD_REQUEST, NOT_FOUND, NO_CONTENT, OK}
+import play.api.libs.json.{JsError, JsSuccess, Json}
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
-import play.api.libs.json.Json
-import connectors.parsers.UserAnswersParser._
-import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.http.HttpResponse
-import uk.gov.hmrc.http.StringContextOps
+import uk.gov.hmrc.http.HttpReads.Implicits.*
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps, UpstreamErrorResponse}
+import utils.DownstreamLogging
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
-
-import javax.inject.Inject
 import java.net.URL
+import javax.inject.Inject
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 class UserAnswersConnector @Inject() (
   appConfig: FrontendAppConfig,
-  http: HttpClientV2
+  http: HttpClientV2,
+  httpClientResponse: HttpClientResponse
 ) extends Logging
     with DownstreamLogging {
-
-  private def submissionUrl(id: String): URL =
-    url"${appConfig.backendService}/submit-declaration/$id"
 
   // These two versions of getAnswers are purposely similar to one another as it is recommended to combine these two in a future refactor
   def getAnswers(transferId: String, srnNumber: SrnNumber)(implicit
     hc: HeaderCarrier,
     ec: ExecutionContext
   ): Future[GetUserAnswersType] =
-    http
-      .get(url"${appConfig.backendService}/save-for-later/$transferId")
-      .setHeader("schemeReferenceNumber" -> srnNumber.value)
-      .execute[GetUserAnswersType]
-      .recover { case e: Exception =>
-        val errMsg = logNonHttpError("[UserAnswersConnector][getAnswers]", hc, e)
-        Left(UserAnswersErrorResponse(errMsg, None))
+    httpClientResponse
+      .read(
+        http
+          .get(url"${appConfig.backendService}/save-for-later/$transferId")
+          .setHeader("schemeReferenceNumber" -> srnNumber.value)
+          .execute[Either[UpstreamErrorResponse, HttpResponse]]
+      )
+      .value
+      .map {
+        case Left(x: UpstreamErrorResponse) if x.statusCode == NOT_FOUND =>
+          logger.warn("[UserAnswersConnector][getAnswers] No record was found in save for later}")
+          Left(UserAnswersNotFoundResponse)
+        case Left(x: UpstreamErrorResponse)                              =>
+          Left(UserAnswersErrorResponse(x.message, None))
+        case Right(x: HttpResponse)                                      =>
+          x.status match {
+            case OK if Try(x.json).toOption.isEmpty =>
+              logger.warn("[UserAnswersConnector][getAnswers] Empty response body")
+              Left(UserAnswersErrorResponse("Empty response body", None))
+            case OK                                 =>
+              x.json.validate[UserAnswersDTO] match {
+                case JsSuccess(value, _) => Right(value)
+                case JsError(errors)     =>
+                  val formatted = formatJsonErrors(errors)
+                  logger.warn(s"[UserAnswersConnector][getAnswers] Unable to parse Json as UserAnswersDTO: $formatted")
+                  Left(UserAnswersErrorResponse("Unable to parse Json as UserAnswersDTO", Some(formatted)))
+              }
+          }
       }
 
   def getAnswers(
@@ -76,14 +92,38 @@ class UserAnswersConnector @Inject() (
     val queryStringParams =
       Seq("pstr" -> pstrNumber.value, "qtStatus" -> qtStatus.toString) ++ versionNumber.toSeq.map("versionNumber" -> _)
 
-    http
-      .get(url)
-      .transform(_.addQueryStringParameters(queryStringParams: _*))
-      .setHeader("schemeReferenceNumber" -> srnNumber.value)
-      .execute[GetUserAnswersType]
-      .recover { case e: Exception =>
-        val errMsg = logNonHttpError("[TransferConnector][getSpecificTransfer]", hc, e)
-        Left(UserAnswersErrorResponse(errMsg, None))
+    httpClientResponse
+      .read(
+        http
+          .get(url)
+          .transform(_.addQueryStringParameters(queryStringParams: _*))
+          .setHeader("schemeReferenceNumber" -> srnNumber.value)
+          .execute[Either[UpstreamErrorResponse, HttpResponse]]
+      )
+      .value
+      .map {
+        case Left(x: UpstreamErrorResponse) =>
+          x.statusCode match {
+            case NOT_FOUND =>
+              logger.warn("[UserAnswersConnector][getAnswers] No record was found in save for later}")
+              Left(UserAnswersNotFoundResponse)
+            case _         =>
+              Left(UserAnswersErrorResponse(x.message, None))
+          }
+        case Right(x: HttpResponse)         =>
+          x.status match {
+            case OK if Try(x.json).toOption.isEmpty =>
+              logger.warn("[UserAnswersConnector][getAnswers] Empty response body")
+              Left(UserAnswersErrorResponse("Empty response body", None))
+            case OK                                 =>
+              x.json.validate[UserAnswersDTO] match {
+                case JsSuccess(value, _) => Right(value)
+                case JsError(errors)     =>
+                  val formatted = formatJsonErrors(errors)
+                  logger.warn(s"[UserAnswersConnector][getAnswers] Unable to parse Json as UserAnswersDTO: $formatted")
+                  Left(UserAnswersErrorResponse("Unable to parse Json as UserAnswersDTO", Some(formatted)))
+              }
+          }
       }
   }
 
@@ -91,29 +131,54 @@ class UserAnswersConnector @Inject() (
     userAnswersDTO: UserAnswersDTO,
     srnNumber: SrnNumber
   )(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[SetUserAnswersType] =
-    http
-      .post(url"${appConfig.backendService}/save-for-later")
-      .setHeader("schemeReferenceNumber" -> srnNumber.value)
-      .withBody(Json.toJson(userAnswersDTO))
-      .execute[SetUserAnswersType](SetUserAnswersHttpReads, ec)
-      .recover { case e: Exception =>
-        val errMsg = logNonHttpError("[UserAnswersConnector][putAnswers]", hc, e)
-        Left(UserAnswersErrorResponse(errMsg, None))
+    httpClientResponse
+      .read(
+        http
+          .post(url"${appConfig.backendService}/save-for-later")
+          .setHeader("schemeReferenceNumber" -> srnNumber.value)
+          .withBody(Json.toJson(userAnswersDTO))
+          .execute[Either[UpstreamErrorResponse, HttpResponse]]
+      )
+      .value
+      .collect {
+        case Right(x: HttpResponse) if x.status == NO_CONTENT              => Right(Done)
+        case Left(x: UpstreamErrorResponse) if x.statusCode == BAD_REQUEST =>
+          Left(UserAnswersErrorResponse(x.message, Some("Payload received is invalid")))
+        case Left(x: UpstreamErrorResponse)                                =>
+          logger.warn(s"[UserAnswersConnector][putAnswers] Downstream error statusCode: ${x.statusCode}")
+          Left(UserAnswersErrorResponse(x.message, None))
       }
 
   def postSubmission(submissionDTO: SubmissionDTO, srnNumber: SrnNumber)(implicit
     hc: HeaderCarrier,
     ec: ExecutionContext
   ): Future[SubmissionType] =
-    http
-      .post(submissionUrl(submissionDTO.referenceId.value))
-      .setHeader("schemeReferenceNumber" -> srnNumber.value)
-      .withBody(Json.toJson(submissionDTO))
-      .execute[SubmissionType]
-      .recover { case e: Exception =>
-        val errMsg = logNonHttpError("[UserAnswersConnector][postSubmission]", hc, e)
-        Left(SubmissionErrorResponse(errMsg, None))
+    httpClientResponse
+      .read(
+        http
+          .post(submissionUrl(submissionDTO.referenceId.value))
+          .setHeader("schemeReferenceNumber" -> srnNumber.value)
+          .withBody(Json.toJson(submissionDTO))
+          .execute[Either[UpstreamErrorResponse, HttpResponse]]
+      )
+      .value
+      .collect {
+        case Right(x: HttpResponse) if x.status == OK =>
+          x.json.validate[SubmissionResponse] match {
+            case JsSuccess(value, _) => Right(value)
+            case JsError(errors)     =>
+              val formatted = formatJsonErrors(errors)
+              logger.warn(
+                s"[SubmissionConnector][postSubmission] Unable to parse Json as SubmissionResponse: $formatted"
+              )
+              Left(SubmissionErrorResponse("Unable to parse Json as SubmissionResponse", Some(formatted)))
+          }
+        case Left(x: UpstreamErrorResponse)           => Left(SubmissionErrorResponse(x.message, None))
+
       }
+
+  private def submissionUrl(id: String): URL =
+    url"${appConfig.backendService}/submit-declaration/$id"
 
   def deleteAnswers(id: String, srnNumber: SrnNumber)(implicit
     hc: HeaderCarrier,
@@ -121,13 +186,21 @@ class UserAnswersConnector @Inject() (
   ): Future[DeleteUserAnswersType] = {
     def url: URL = url"${appConfig.backendService}/save-for-later/$id"
 
-    http
-      .delete(url)
-      .setHeader("schemeReferenceNumber" -> srnNumber.value)
-      .execute[DeleteUserAnswersType](DeleteUserAnswersHttpReads, ec)
-      .recover { case e: Exception =>
-        logger.warn(s"Error deleting user answers for ID '$id': ${e.getMessage}", e)
-        Left(SubmissionErrorResponse(e.getMessage, None))
+    httpClientResponse
+      .read(
+        http
+          .delete(url)
+          .setHeader("schemeReferenceNumber" -> srnNumber.value)
+          .execute[Either[UpstreamErrorResponse, HttpResponse]]
+      )
+      .value
+      .collect {
+        case Right(x: HttpResponse) if x.status == NO_CONTENT => Right(Done)
+        case Left(x: UpstreamErrorResponse)                   =>
+          logger.warn(
+            s"[UserAnswersConnector][deleteAnswers] Error returned: downstreamStatus: ${x.statusCode}, error: ${x.message}"
+          )
+          Left(UserAnswersErrorResponse(x.message, None))
       }
   }
 

@@ -17,7 +17,6 @@
 package connectors
 
 import base.BaseISpec
-import connectors.parsers.TransferParser.GetAllTransfersType
 import models.QtStatus.Submitted
 import models.responses.*
 import models.{PstrNumber, QtNumber, SrnNumber}
@@ -43,7 +42,7 @@ class TransferConnectorISpec extends BaseISpec with Injecting with OptionValues 
       "return Right(GetAllTransfersDTO) with the parsed transfers if payload valid" in {
         TransferBackendStub.stubGetAllTransfersOk(pstr.value, testNino)
 
-        val result: GetAllTransfersType = await(connector.getAllTransfers(srn, pstr))
+        val result = await(connector.getAllTransfers(srn, pstr))
 
         result match {
           case Right(dto) =>
