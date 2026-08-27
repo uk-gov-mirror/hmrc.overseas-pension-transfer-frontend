@@ -17,32 +17,40 @@
 package connectors
 
 import config.FrontendAppConfig
-import play.api.libs.ws.writeableOf_JsValue
-import uk.gov.hmrc.http._
-import models.email.EmailNotSent
-import models.email.EmailSendingResult
-import models.email.EmailToSendRequest
+import models.email.*
 import play.api.Logging
 import play.api.libs.json.Json
+import play.api.libs.ws.writeableOf_JsValue
+import uk.gov.hmrc.http.*
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
-import connectors.parsers.EmailHttpParser._
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
-
-import javax.inject.Inject
-import javax.inject.Singleton
+import javax.inject.{Inject, Singleton}
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class EmailConnector @Inject() (appConfig: FrontendAppConfig, httpClientV2: HttpClientV2) extends Logging {
+class EmailConnector @Inject() (
+  appConfig: FrontendAppConfig,
+  httpClientV2: HttpClientV2,
+  httpClientResponse: HttpClientResponse
+) extends Logging {
 
-  def send(email: EmailToSendRequest)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[EmailSendingResult] =
-    httpClientV2.post(url"${appConfig.emailService}").withBody(Json.toJson(email)).execute[EmailSendingResult].recover {
-      case e: BadGatewayException     =>
-        logger.warn(s"[EmailConnector][send] Error sending email: ${e.message}")
-        EmailNotSent
-      case e: GatewayTimeoutException =>
-        logger.warn(s"[EmailConnector][send] Gateway timed out: ${e.message}")
-        EmailNotSent
-    }
+  def send(
+    email: EmailToSendRequest
+  )(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[EmailSendingResult] =
+    httpClientResponse
+      .read(
+        httpClientV2
+          .post(url"${appConfig.emailService}")
+          .withBody(Json.toJson(email))
+          .execute[Either[UpstreamErrorResponse, HttpResponse]]
+      )
+      .value
+      .collect {
+        case Left(x: UpstreamErrorResponse) if x.statusCode >= 400 && x.statusCode < 500 => EmailUnsendable
+        case Left(x: UpstreamErrorResponse)                                              =>
+          logger.warn(s"[EmailConnector][send] Error sending email: ${x.message}")
+          EmailNotSent
+        case Right(_: HttpResponse)                                                      => EmailAccepted
+      }
 }
