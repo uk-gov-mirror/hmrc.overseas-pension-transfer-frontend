@@ -56,12 +56,14 @@ object OtherAssetsAmendContinueSummary extends AppUtils {
           }
 
         val actions =
-          if (showChangeLink)
+          if (showChangeLink) {
             Seq(
               ActionItemViewModel("site.change", changeUrl)
                 .withVisuallyHiddenText(messages("otherAssetsAmendContinue.change.hidden"))
             )
-          else Seq.empty
+          } else {
+            Seq.empty
+          }
 
         Some(
           SummaryListRowViewModel(
@@ -91,7 +93,9 @@ object OtherAssetsAmendContinueSummary extends AppUtils {
                   .url
             ).withVisuallyHiddenText(messages("moreThanFive.otherAssets.change.hidden"))
           )
-        } else Nil
+        } else {
+          Nil
+        }
       )
     }
 

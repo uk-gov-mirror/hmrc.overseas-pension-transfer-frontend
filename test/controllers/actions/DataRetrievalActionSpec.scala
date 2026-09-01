@@ -63,12 +63,11 @@ class DataRetrievalActionSpec extends AnyFreeSpec with SpecBase with MockitoSuga
 
       "must redirect to JourneyRecovery" in {
 
-        val sessionRepository  = mock[SessionRepository]
         val userAnswersService = mock[UserAnswersService]
 
-        when(sessionRepository.get(any())).thenReturn(Future.successful(None))
+        when(mockSessionRepository.get(any())).thenReturn(Future.successful(None))
 
-        val action = new Harness(sessionRepository, userAnswersService)
+        val action = new Harness(mockSessionRepository, userAnswersService)
 
         val futureResult = action.callRefine(SchemeRequest(FakeRequest(), psaUser, schemeDetails)).futureValue
 
@@ -84,14 +83,13 @@ class DataRetrievalActionSpec extends AnyFreeSpec with SpecBase with MockitoSuga
     "when there is no data returned from user answers service" - {
       "must redirect to JourneyRecovery" in {
 
-        val sessionRepository  = mock[SessionRepository]
         val userAnswersService = mock[UserAnswersService]
 
-        when(sessionRepository.get(any())).thenReturn(Future.successful(Some(sessionData)))
+        when(mockSessionRepository.get(any())).thenReturn(Future.successful(Some(sessionData)))
         when(userAnswersService.getExternalUserAnswers(any())(any()))
           .thenReturn(Future.successful(Left(UserAnswersErrorResponse("Error", None))))
 
-        val action = new Harness(sessionRepository, userAnswersService)
+        val action = new Harness(mockSessionRepository, userAnswersService)
 
         val futureResult = action.callRefine(SchemeRequest(FakeRequest(), psaUser, schemeDetails)).futureValue
 
@@ -107,13 +105,12 @@ class DataRetrievalActionSpec extends AnyFreeSpec with SpecBase with MockitoSuga
     "when there is data in the cache" - {
 
       "must build a userAnswers, memberName, qtNumber and dateTransferSubmitted object and add it to the request" in {
-        val sessionRepository  = mock[SessionRepository]
         val userAnswersService = mock[UserAnswersService]
 
-        when(sessionRepository.get("id")) thenReturn Future(Some(sessionData))
+        when(mockSessionRepository.get("id")) thenReturn Future(Some(sessionData))
         when(userAnswersService.getExternalUserAnswers(any())(any()))
           .thenReturn(Future.successful(Right(emptyUserAnswers)))
-        val action = new Harness(sessionRepository, userAnswersService)
+        val action = new Harness(mockSessionRepository, userAnswersService)
 
         val result = action.callRefine(SchemeRequest(FakeRequest(), psaUser, schemeDetails)).futureValue
 

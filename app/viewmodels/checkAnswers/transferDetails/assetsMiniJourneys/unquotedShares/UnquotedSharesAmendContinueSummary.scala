@@ -56,12 +56,14 @@ object UnquotedSharesAmendContinueSummary extends AppUtils {
           }
 
         val actions =
-          if (showChangeLink)
+          if (showChangeLink) {
             Seq(
               ActionItemViewModel("site.change", changeUrl)
                 .withVisuallyHiddenText(messages("unquotedSharesAmendContinue.change.hidden"))
             )
-          else Seq.empty
+          } else {
+            Seq.empty
+          }
 
         Some(
           SummaryListRowViewModel(
@@ -91,7 +93,9 @@ object UnquotedSharesAmendContinueSummary extends AppUtils {
                   .url
             ).withVisuallyHiddenText(messages("moreThanFive.unquotedShares.change.hidden"))
           )
-        } else Nil
+        } else {
+          Nil
+        }
       )
     }
 

@@ -22,7 +22,6 @@ import models.authentication.{PsaId, PsaUser}
 import models.requests.{IdentifierRequest, SchemeRequest}
 import models.responses.PensionSchemeErrorResponse
 import models.{DashboardData, PensionSchemeDetails, PensionSchemeResponse, PstrNumber, SrnNumber}
-import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatestplus.mockito.MockitoSugar.mock
@@ -34,6 +33,7 @@ import queries.PensionSchemeDetailsQuery
 import repositories.DashboardSessionRepository
 import uk.gov.hmrc.auth.core.AffinityGroup.Individual
 
+import org.mockito.ArgumentMatchers.any
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 

@@ -22,11 +22,11 @@ import play.api.data.Form
 import javax.inject.Inject
 
 class MemberDoesNotHaveNinoFormProvider @Inject() extends Mappings {
-
-  def apply(): Form[String] =
+  private final val MaxLength = 160
+  def apply(): Form[String]   =
     Form(
       "value" -> text("memberDoesNotHaveNino.error.required")
         .transform[String](input => input.trim, identity)
-        .verifying(maxLength(160, "memberDoesNotHaveNino.error.length"))
+        .verifying(maxLength("memberDoesNotHaveNino.error.length", MaxLength))
     )
 }

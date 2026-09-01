@@ -54,6 +54,7 @@ class MoreUnquotedSharesDeclarationControllerSpec extends AnyFreeSpec with SpecB
   "MoreUnquotedSharesDeclaration Controller" - {
 
     "must return OK and the correct view for a GET" in {
+      when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
       val application = applicationBuilder(userAnswers = userAnswersWithAssets(assetsCount = 5)).build()
       running(application) {
         val request = FakeRequest(GET, moreUnquotedSharesDeclarationRoute)

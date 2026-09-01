@@ -42,7 +42,7 @@ trait ViewBaseSpec extends AnyFreeSpec with SpecBase {
   implicit val lang: Lang        = mock[Lang]
   implicit val mat: Materializer = mock[Materializer]
 
-  val mockMcc = mock[MessagesControllerComponents]
+  val mockMcc: MessagesControllerComponents = mock[MessagesControllerComponents]
 
   def doc(body: String): Document = Jsoup.parse(body)
 
