@@ -26,6 +26,6 @@ class QROPSOtherCountryFormProvider @Inject() extends Mappings {
   def apply(): Form[String] =
     Form(
       "otherEstablishedCountry" -> text("qropsOtherCountry.error.required")
-        .verifying(maxLength(35, "qropsOtherCountry.error.length"))
+        .verifying(maxLength("qropsOtherCountry.error.length"))
     )
 }

@@ -56,12 +56,14 @@ object PropertyAmendContinueSummary {
           }
 
         val actions =
-          if (showChangeLink)
+          if (showChangeLink) {
             Seq(
               ActionItemViewModel("site.change", changeUrl)
                 .withVisuallyHiddenText(messages("propertyAmendContinue.change.hidden"))
             )
-          else Seq.empty
+          } else {
+            Seq.empty
+          }
 
         Some(
           SummaryListRowViewModel(
@@ -90,7 +92,9 @@ object PropertyAmendContinueSummary {
                 .url
             ).withVisuallyHiddenText(messages("moreThanFive.properties.change.hidden"))
           )
-        } else Nil
+        } else {
+          Nil
+        }
       )
     }
 

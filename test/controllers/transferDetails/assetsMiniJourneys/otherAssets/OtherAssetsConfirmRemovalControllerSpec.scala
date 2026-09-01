@@ -43,7 +43,7 @@ class OtherAssetsConfirmRemovalControllerSpec extends AnyFreeSpec with SpecBase 
   "OtherAssetsConfirmRemoval Controller" - {
 
     "must return OK and the correct view for a GET" in {
-
+      when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
       val application = applicationBuilder().build()
 
       running(application) {

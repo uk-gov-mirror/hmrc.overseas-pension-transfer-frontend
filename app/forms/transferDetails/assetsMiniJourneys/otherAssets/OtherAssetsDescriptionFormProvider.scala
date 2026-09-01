@@ -30,7 +30,7 @@ class OtherAssetsDescriptionFormProvider @Inject() extends Mappings with Regex {
     Form(
       "value" -> text("assetValueDescription.error.required")
         .transform[String](input => input.trim, identity)
-        .verifying(maxLength(maxLen, "assetValueDescription.error.length"))
+        .verifying(maxLength("assetValueDescription.error.length", maxLen))
         .verifying(regexp(descriptionRegex, "assetValueDescription.error.pattern"))
     )
 }

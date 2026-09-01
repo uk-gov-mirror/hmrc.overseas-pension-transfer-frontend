@@ -20,18 +20,22 @@ import base.SpecBase
 import config.FrontendAppConfig
 import org.mockito.ArgumentMatchers.{any, eq as eqTo}
 import org.mockito.Mockito.{times, verify, when}
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.inject.bind
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import services.UserAnswersService
-
+import org.mockito.Mockito.reset
 import java.net.URLEncoder
 import scala.concurrent.Future
 
-class AuthControllerSpec extends AnyFreeSpec with SpecBase with MockitoSugar {
-
+class AuthControllerSpec extends AnyFreeSpec with SpecBase with MockitoSugar with BeforeAndAfterEach {
+  override protected def beforeEach(): Unit = {
+    super.beforeEach()
+    reset(mockSessionRepository)
+  }
   "signOut" - {
     "must clear session-data and redirect to sign out, specifying the exit survey as the continue URL" in {
 

@@ -132,7 +132,7 @@ class SubmitToHMRCControllerSpec extends AnyFreeSpec with SpecBase with MockitoS
 
       when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
 
-      val application = applicationBuilder(userAnswers = emptyUserAnswers).build()
+      val application = applicationBuilder().build()
 
       running(application) {
         val request: FakeRequest[AnyContentAsFormUrlEncoded] =

@@ -22,11 +22,11 @@ import play.api.data.Form
 import javax.inject.Inject
 
 class QROPSNameFormProvider @Inject() extends Mappings {
-
-  def apply(): Form[String] =
+  private final val MaxLength = 160
+  def apply(): Form[String]   =
     Form(
       "qropsName" -> text("qropsName.error.required")
         .transform[String](input => input.trim, identity)
-        .verifying(maxLength(160, "qropsName.error.length"))
+        .verifying(maxLength("qropsName.error.length", MaxLength))
     )
 }

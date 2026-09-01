@@ -30,7 +30,7 @@ class QuotedSharesClassFormProvider @Inject() extends Mappings with Regex {
     Form(
       "value" -> text("quotedSharesClass.error.required")
         .transform[String](input => input.trim, identity)
-        .verifying(maxLength(maxLength, "quotedSharesClass.error.length"))
+        .verifying(maxLength("quotedSharesClass.error.length", maxLength))
         .verifying(regexp(nameRegex, "quotedSharesClass.error.pattern"))
     )
 }
