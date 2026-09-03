@@ -24,13 +24,13 @@ import play.api.test.Helpers.*
 object PensionSchemeStub {
 
   private def stubGet(
-      urlRegex: String,
-      status: Int,
-      responseBody: String,
-      requiredHeaders: Seq[(String, String)],
-      headerRegexes: Seq[(String, String)]   = Seq.empty,
-      absentHeaders: Seq[String]             = Seq.empty
-    ): StubMapping = {
+    urlRegex: String,
+    status: Int,
+    responseBody: String,
+    requiredHeaders: Seq[(String, String)],
+    headerRegexes: Seq[(String, String)] = Seq.empty,
+    absentHeaders: Seq[String] = Seq.empty
+  ): StubMapping = {
 
     val builder = get(urlPathMatching(urlRegex)).atPriority(1)
 
@@ -88,7 +88,7 @@ object PensionSchemeStub {
       responseBody = body,
       requiredHeaders = Seq(
         "schemeIdType" -> "srn",
-        "idNumber" -> srn
+        "idNumber"     -> srn
       )
     )
     ()
@@ -135,22 +135,22 @@ object PensionSchemeStub {
 
   def stubCheckPsaAssociation(srn: String, psaId: String, isAssociated: Boolean): Unit = {
     stubGet(
-      urlRegex        = AssocPathRegex,
-      status          = OK,
-      responseBody    = isAssociated.toString,
+      urlRegex = AssocPathRegex,
+      status = OK,
+      responseBody = isAssociated.toString,
       requiredHeaders = Seq("schemeReferenceNumber" -> srn, "psaId" -> psaId),
-      absentHeaders   = Seq("pspId")
+      absentHeaders = Seq("pspId")
     )
     ()
   }
 
-  def stubCheckPsaAssociationFailure(srn: String, psaId: String): Unit          = {
+  def stubCheckPsaAssociationFailure(srn: String, psaId: String): Unit = {
     stubGet(
-      urlRegex        = AssocPathRegex,
-      status          = INTERNAL_SERVER_ERROR,
-      responseBody    = """{"error": "Internal Server Error"}""",
+      urlRegex = AssocPathRegex,
+      status = INTERNAL_SERVER_ERROR,
+      responseBody = """{"error": "Internal Server Error"}""",
       requiredHeaders = Seq("schemeReferenceNumber" -> srn, "psaId" -> psaId),
-      absentHeaders   = Seq("pspId")
+      absentHeaders = Seq("pspId")
     )
     ()
   }

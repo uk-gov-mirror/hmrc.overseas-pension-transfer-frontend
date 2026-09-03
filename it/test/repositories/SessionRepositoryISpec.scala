@@ -21,6 +21,8 @@ import config.FrontendAppConfig
 import models.authentication.{PsaId, PsaUser}
 import models.{PensionSchemeDetails, PstrNumber, SessionData, SrnNumber}
 import org.mockito.Mockito.when
+import org.mongodb.scala.ObservableFuture
+import org.mongodb.scala.bson.BsonDocument
 import org.mongodb.scala.model.Filters
 import org.scalactic.source.Position
 import org.scalatest.OptionValues
@@ -29,7 +31,7 @@ import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import org.slf4j.MDC
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, Json}
 import services.EncryptionService
 import uk.gov.hmrc.auth.core.AffinityGroup.Individual
 import uk.gov.hmrc.mdc.MdcExecutionContext
@@ -39,7 +41,7 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 import scala.concurrent.{ExecutionContext, Future}
 
-class SessionRepositoryISpec
+trait SessionRepositoryISpec(protected val isEncrypted: Boolean)
     extends AnyFreeSpec
     with Matchers
     with DefaultPlayMongoRepositorySupport[SessionData]
@@ -49,9 +51,9 @@ class SessionRepositoryISpec
     with MockitoSugar
     with SpecBase {
 
-  private val instant = now.truncatedTo(ChronoUnit.MILLIS)
+  protected val instant: Instant = now.truncatedTo(ChronoUnit.MILLIS)
 
-  private val sessionData = SessionData(
+  protected val sessionData = SessionData(
     "id",
     userAnswersTransferNumber,
     PensionSchemeDetails(
@@ -68,41 +70,55 @@ class SessionRepositoryISpec
     Instant.ofEpochSecond(1)
   )
 
-  private val mockAppConfig = mock[FrontendAppConfig]
+  protected val mockAppConfig: FrontendAppConfig = mock[FrontendAppConfig]
   when(mockAppConfig.cacheTtl) thenReturn 1L
+  when(mockAppConfig.mongoDBEncryption) thenReturn isEncrypted
 
   implicit val productionLikeTestMdcExecutionContext: ExecutionContext = MdcExecutionContext()
 
-  private val encryptionService = new EncryptionService("test-master-key")
+  protected val encryptionService = new EncryptionService("test-master-key")
 
-  override protected val repository: SessionRepository = new SessionRepository(
-    mongoComponent = mongoComponent,
-    encryptionService = encryptionService,
-    appConfig = mockAppConfig,
-    clock = clock
-  )
+  override protected val repository: SessionRepository
 
   override protected def beforeEach(): Unit = {
     deleteAll()
     ()
   }
 
-  ".set" - {
+  // If it can read data node as a String then it is encrypted, otherwise it will be JsObject (unencrypted).
+  private def isStoredValueEncrypted: Boolean = {
+    val jsObj = Json
+      .parse(
+        repository.collection
+          .find[BsonDocument](Filters.equal("_id", sessionData.sessionId))
+          .toFuture()
+          .futureValue
+          .headOption
+          .value
+          .toJson
+      )
+      .as[JsObject]
+    (jsObj \ "data").toOption.flatMap(_.asOpt[String]).isDefined
+  }
+
+  private def encryptedMessage: String = if (isEncrypted) "when encryption is on " else " when encryption is off "
+
+  s".set $encryptedMessage" - {
 
     "must set the last updated time on the supplied user answers to `now`, and save them" in {
-
       val expectedResult = sessionData copy (lastUpdated = instant)
 
       repository.set(sessionData).futureValue
       val updatedRecord = find(Filters.equal("_id", sessionData.sessionId)).futureValue.headOption.value
 
+      isStoredValueEncrypted mustBe isEncrypted
       updatedRecord mustEqual expectedResult
     }
 
     mustPreserveMdc(repository.set(sessionData))
   }
 
-  ".get" - {
+  s".get $encryptedMessage" - {
 
     "when there is a record for this id" - {
 
@@ -112,7 +128,7 @@ class SessionRepositoryISpec
 
         val result         = repository.get(sessionData.sessionId).futureValue
         val expectedResult = sessionData copy (lastUpdated = instant)
-
+        isStoredValueEncrypted mustBe isEncrypted
         result.value mustEqual expectedResult
       }
     }
@@ -128,12 +144,12 @@ class SessionRepositoryISpec
     mustPreserveMdc(repository.get(sessionData.sessionId))
   }
 
-  ".clear" - {
+  s".clear $encryptedMessage" - {
 
     "must remove a record" in {
 
       insert(sessionData).futureValue
-
+      isStoredValueEncrypted mustBe isEncrypted
       repository.clear(sessionData.transferId.value).futureValue
 
       repository.get(sessionData.transferId.value).futureValue must not be defined
@@ -148,16 +164,16 @@ class SessionRepositoryISpec
     mustPreserveMdc(repository.clear(sessionData.transferId.value))
   }
 
-  ".keepAlive" - {
+  s".keepAlive $encryptedMessage" - {
 
     "when there is a record for this id" - {
 
       "must update its lastUpdated to `now` and return true" in {
         insert(sessionData).futureValue
 
-        val result = repository.keepAlive(sessionData.sessionId).futureValue
+        val result         = repository.keepAlive(sessionData.sessionId).futureValue
         result mustBe true
-
+        isStoredValueEncrypted mustBe isEncrypted
         val updatedAnswers = find(Filters.equal("_id", sessionData.sessionId)).futureValue.headOption.value
 
         updatedAnswers.lastUpdated mustEqual instant
@@ -175,26 +191,6 @@ class SessionRepositoryISpec
     mustPreserveMdc(repository.keepAlive(sessionData.sessionId))
   }
 
-  "EncryptionService" - {
-    "must correctly encrypt and decrypt data" in {
-      val service   = new EncryptionService("encryption-test-key")
-      val plainText = "sensitive data 123"
-
-      val encrypted = service.encrypt(plainText)
-      encrypted must not be plainText
-
-      val decrypted = service.decrypt(encrypted)
-      decrypted mustEqual Right(plainText)
-    }
-
-    "must return Left when decrypting invalid cipher text" in {
-      val service       = new EncryptionService("another-key")
-      val invalidCipher = "invalid-data-123"
-      val result        = service.decrypt(invalidCipher)
-      result.isLeft mustBe true
-    }
-  }
-
   private def mustPreserveMdc[A](f: => Future[A])(implicit pos: Position): Unit =
     "must preserve MDC" in {
 
@@ -204,4 +200,24 @@ class SessionRepositoryISpec
         Option(MDC.get("test"))
       }.futureValue mustEqual Some("foo")
     }
+}
+
+class SessionRepositoryEncryptionToggledOnISpec extends SessionRepositoryISpec(true) {
+  override protected val repository: SessionRepository =
+    new SessionRepository(
+      mongoComponent = mongoComponent,
+      encryptionService = encryptionService,
+      appConfig = mockAppConfig,
+      clock = clock
+    )
+}
+
+class SessionRepositoryEncryptionToggledOffISpec extends SessionRepositoryISpec(false) {
+  override protected val repository: SessionRepository =
+    new SessionRepository(
+      mongoComponent = mongoComponent,
+      encryptionService = encryptionService,
+      appConfig = mockAppConfig,
+      clock = clock
+    )
 }

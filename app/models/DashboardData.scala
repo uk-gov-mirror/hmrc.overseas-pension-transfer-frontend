@@ -16,18 +16,14 @@
 
 package models
 
-import services.EncryptionService
-import queries.Gettable
-import queries.Settable
-import play.api.libs.json._
-import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
-
-import scala.util.Failure
-import scala.util.Success
-import scala.util.Try
+import play.api.libs.json.*
+import queries.{Gettable, Settable}
+import services.EncryptionService
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
 import java.time.Instant
+import scala.util.{Failure, Success, Try}
 
 final case class DashboardData(
   id: String,
@@ -123,6 +119,24 @@ object DashboardData {
       Json.obj(
         "_id"         -> dd.id,
         "data"        -> encrypted.encryptedString,
+        "lastUpdated" -> MongoJavatimeFormats.instantFormat.writes(dd.lastUpdated)
+      )
+    }
+
+    OFormat(reads, writes)
+  }
+
+  def unencryptedFormat: OFormat[DashboardData] = {
+    val reads: Reads[DashboardData] = (
+      (__ \ "_id").read[String] and
+        (__ \ "data").read[JsObject] and
+        (__ \ "lastUpdated").read(MongoJavatimeFormats.instantFormat)
+    )(DashboardData.apply _)
+
+    val writes: OWrites[DashboardData] = OWrites { dd =>
+      Json.obj(
+        "_id"         -> dd.id,
+        "data"        -> dd.data,
         "lastUpdated" -> MongoJavatimeFormats.instantFormat.writes(dd.lastUpdated)
       )
     }

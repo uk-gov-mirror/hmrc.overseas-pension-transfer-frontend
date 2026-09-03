@@ -23,14 +23,17 @@ object MinimalDetailsStub {
 
   private val PathRegex = ".*/pension-administrator/get-minimal-details-self"
 
-  private def withHeaders(builder: com.github.tomakehurst.wiremock.client.MappingBuilder, headers: Seq[(String, String)]) =
+  private def withHeaders(
+    builder: com.github.tomakehurst.wiremock.client.MappingBuilder,
+    headers: Seq[(String, String)]
+  ) =
     headers.foldLeft(builder) { case (b, (k, v)) => b.withHeader(k, equalTo(v)) }
 
   private def stubGetWithHeaders(
-      status: Int,
-      body: String,
-      requiredHeaders: Seq[(String, String)]
-    ): StubMapping = {
+    status: Int,
+    body: String,
+    requiredHeaders: Seq[(String, String)]
+  ): StubMapping = {
     val builder = get(urlPathMatching(PathRegex)).atPriority(1)
     val withAll = withHeaders(builder, requiredHeaders)
 

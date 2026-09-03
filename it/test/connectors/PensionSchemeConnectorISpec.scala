@@ -38,9 +38,9 @@ class PensionSchemeConnectorISpec extends BaseISpec with Injecting {
   val pspUser: AuthenticatedUser = PspUser(PspId("21000005"), "ext-psp", Individual)
 
   "PensionSchemeConnector.checkAssociation" when {
-    
+
     "checking association status" must {
-      
+
       "return true for PSA when downstream says associated and headers are present" in {
         PensionSchemeStub.checkAssociationPsaTrue(srn)
         await(connector.checkAssociation(srn, psaUser)) shouldBe true
@@ -54,9 +54,9 @@ class PensionSchemeConnectorISpec extends BaseISpec with Injecting {
   }
 
   "PensionSchemeConnector.getSchemeDetails" when {
-    
+
     "fetching scheme details" must {
-      
+
       "return Right(PensionSchemeResponse) for PSA route" in {
         PensionSchemeStub.stubGetSchemeDetailsForPsaSuccess(srn, pstr, schemeNm)
 
@@ -84,8 +84,7 @@ class PensionSchemeConnectorISpec extends BaseISpec with Injecting {
       "return Left(PensionSchemeErrorResponse) on 200 with invalid JSON" in {
         PensionSchemeStub.responseGetSchemeDetailsForPsa(srn)(
           status = OK,
-          body   =
-            s"""{
+          body = s"""{
                |  "srn": "$srn",
                |  "pstr": "$pstr"
                |}""".stripMargin
@@ -103,9 +102,9 @@ class PensionSchemeConnectorISpec extends BaseISpec with Injecting {
 
       "return Left(PensionSchemeErrorResponse) on 500 with JSON error body" in {
         PensionSchemeStub.stubGetSchemeDetailsErrorForPsp(
-          srn    = srn,
+          srn = srn,
           status = INTERNAL_SERVER_ERROR,
-          body   = """{"error":"downstream boom"}"""
+          body = """{"error":"downstream boom"}"""
         )
 
         val result = await(connector.getSchemeDetails(srn, pspUser))
@@ -119,11 +118,13 @@ class PensionSchemeConnectorISpec extends BaseISpec with Injecting {
 
       "return Left(PensionSchemeErrorResponse) on 500 with JSON parsing errors, when the error cannot parse" in {
         PensionSchemeStub.stubGetSchemeDetailsErrorForPsp(
-          srn    = srn,
+          srn = srn,
           status = INTERNAL_SERVER_ERROR,
-          body   = Json.stringify(Json.obj(
-            "invalidField" -> 17
-          ))
+          body = Json.stringify(
+            Json.obj(
+              "invalidField" -> 17
+            )
+          )
         )
 
         val result = await(connector.getSchemeDetails(srn, pspUser))
@@ -150,7 +151,7 @@ class PensionSchemeConnectorISpec extends BaseISpec with Injecting {
   }
 
   "PensionSchemeConnector.getIsAuthorisingPsa" when {
-    
+
     "fetching the authorising PSA ID" must {
 
       "return Right(PsaId) when downstream returns valid JSON with authorisingPSAID" in {
@@ -177,8 +178,7 @@ class PensionSchemeConnectorISpec extends BaseISpec with Injecting {
           srn = srn
         )(
           status = OK,
-          body   =
-            s"""{
+          body = s"""{
                |  "pspDetails": {
                |    "id": "21000005",
                |    "individual": {
@@ -205,7 +205,7 @@ class PensionSchemeConnectorISpec extends BaseISpec with Injecting {
           srn = srn
         )(
           status = INTERNAL_SERVER_ERROR,
-          body   = """{"error":"downstream boom"}"""
+          body = """{"error":"downstream boom"}"""
         )
 
         val result = await(connector.getAuthorisingPsa(srn))
@@ -223,9 +223,11 @@ class PensionSchemeConnectorISpec extends BaseISpec with Injecting {
           srn = srn
         )(
           status = INTERNAL_SERVER_ERROR,
-          body   = Json.stringify(Json.obj(
-            "invalidField" -> 42
-          ))
+          body = Json.stringify(
+            Json.obj(
+              "invalidField" -> 42
+            )
+          )
         )
 
         val result = await(connector.getAuthorisingPsa(srn))

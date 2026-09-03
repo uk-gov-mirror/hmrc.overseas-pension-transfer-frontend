@@ -31,37 +31,37 @@ class EmailConnectorISpec extends BaseISpec with Injecting {
 
   private val emailRequest: EmailToSendRequest =
     EmailToSendRequest(
-      to         = List("test.user@example.com"),
+      to = List("test.user@example.com"),
       templateId = "submitted-confirmation-template",
       parameters = SubmissionConfirmation(
-        qtReference       = "QT123456",
-        memberName        = "Foo Bar",
-        submitter         = "David Frost",
-        submissionDate    = "3 October 2025 at 3:00pm",
+        qtReference = "QT123456",
+        memberName = "Foo Bar",
+        submitter = "David Frost",
+        submissionDate = "3 October 2025 at 3:00pm",
         pensionSchemeName = "Smith Harper Pension Scheme"
       )
     )
 
   "EmailConnector.send" when {
-    
+
     "sending an email" must {
-      
+
       "return EmailAccepted" when {
-        
+
         "downstream responds 202 ACCEPTED (200 - 299)" in {
           EmailStub.sendEmailResponse(
-            status                  = ACCEPTED,
+            status = ACCEPTED,
             expectedRequestBodyJson = Json.stringify(Json.toJson(emailRequest))
           )
 
           await(connector.send(emailRequest)) shouldBe EmailAccepted
         }
-        
+
         "the response status is outside of normal responses" when {
 
           "the status is 600" in {
             EmailStub.sendEmailResponse(
-              status                  = 600,
+              status = 600,
               expectedRequestBodyJson = Json.stringify(Json.toJson(emailRequest))
             )
 
@@ -72,7 +72,7 @@ class EmailConnectorISpec extends BaseISpec with Injecting {
 
       "return EmailUnsendable when downstream responds 401 UNAUTHORIZED (400 - 499)" in {
         EmailStub.sendEmailResponse(
-          status                  = UNAUTHORIZED,
+          status = UNAUTHORIZED,
           expectedRequestBodyJson = Json.stringify(Json.toJson(emailRequest))
         )
 
@@ -81,7 +81,7 @@ class EmailConnectorISpec extends BaseISpec with Injecting {
 
       "return EmailNotSent when downstream responds 502 BAD_GATEWAY (500 - 599)" in {
         EmailStub.sendEmailResponse(
-          status                  = BAD_GATEWAY,
+          status = BAD_GATEWAY,
           expectedRequestBodyJson = Json.stringify(Json.toJson(emailRequest))
         )
 

@@ -30,11 +30,17 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Awaitable}
 import scala.util.Random
 
-trait BaseISpec extends AnyWordSpecLike with WireMockHelper with Matchers with OptionValues with BeforeAndAfterAll with BeforeAndAfterEach
-  with GuiceOneServerPerSuite {
+trait BaseISpec
+    extends AnyWordSpecLike
+    with WireMockHelper
+    with Matchers
+    with OptionValues
+    with BeforeAndAfterAll
+    with BeforeAndAfterEach
+    with GuiceOneServerPerSuite {
 
   private val clockMillis: Long = 1718118467838L
-  val clock: Clock      = Clock.fixed(Instant.ofEpochMilli(clockMillis), ZoneId.of("UTC"))
+  val clock: Clock              = Clock.fixed(Instant.ofEpochMilli(clockMillis), ZoneId.of("UTC"))
 
   val now: Instant = Instant.now(clock)
 
@@ -55,7 +61,7 @@ trait BaseISpec extends AnyWordSpecLike with WireMockHelper with Matchers with O
   )
 
   def generateNino(prefix: String = "AA"): String = {
-    val num = Random.nextInt(1000000)
+    val num    = Random.nextInt(1000000)
     val suffix = "C"
     f"$prefix$num%06d$suffix"
   }
@@ -84,9 +90,8 @@ trait BaseISpec extends AnyWordSpecLike with WireMockHelper with Matchers with O
     resetWireMock()
   }
 
-  override def afterEach(): Unit = {
+  override def afterEach(): Unit =
     super.afterEach()
-  }
 
   def await[T](awaitable: Awaitable[T]): T = Await.result(awaitable, Duration.Inf)
 

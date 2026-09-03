@@ -7,6 +7,7 @@ lazy val appName: String = "overseas-pension-transfer-frontend"
 
 ThisBuild / majorVersion := 0
 ThisBuild / scalaVersion := "3.3.7"
+Test / parallelExecution := false
 
 addCommandAlias("runAllChecks", ";clean;compile;scalafmtAll;scalastyle;coverage;test;it/test;coverageReport")
 

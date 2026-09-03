@@ -90,4 +90,6 @@ class FrontendAppConfig @Inject() (configuration: Configuration, servicesConfig:
     } else {
       s"$pensionSchemeSummaryUrl$srn"
     }
+
+  val mongoDBEncryption: Boolean = configuration.get[Boolean]("mongodb.encryption")
 }

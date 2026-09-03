@@ -17,18 +17,14 @@
 package models
 
 import models.authentication.AuthenticatedUser
+import play.api.libs.functional.syntax.*
+import play.api.libs.json.*
+import queries.{Gettable, Settable}
 import services.EncryptionService
-import queries.Gettable
-import queries.Settable
-import play.api.libs.json._
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
-import play.api.libs.functional.syntax._
-
-import scala.util.Failure
-import scala.util.Success
-import scala.util.Try
 
 import java.time.Instant
+import scala.util.{Failure, Success, Try}
 
 case class SessionData(
   sessionId: String,
@@ -129,7 +125,8 @@ object SessionData {
         (__ \ "user").read[AuthenticatedUser] and
         (__ \ "data").read[String].map { enc =>
           EncryptedSessionData(enc).decrypt(encryptionService) match {
-            case Right(decryptedJs) => decryptedJs
+            case Right(decryptedJs) =>
+              decryptedJs
             case Left(err)          =>
               // fail fast: decryption failure should be surfaced loudly in logs
               throw new RuntimeException(s"Decryption failed: ${err.getMessage}", err)
@@ -147,6 +144,31 @@ object SessionData {
         "schemeInformation" -> Json.toJson(sd.schemeInformation),
         "user"              -> Json.toJson(sd.user),
         "data"              -> encrypted.encryptedString,
+        "lastUpdated"       -> MongoJavatimeFormats.instantFormat.writes(sd.lastUpdated)
+      )
+    }
+
+    OFormat(reads, writes)
+  }
+
+  def unencryptedFormat: OFormat[SessionData] = {
+
+    val reads: Reads[SessionData] = (
+      (__ \ "_id").read[String] and
+        (__ \ "transferId").read[TransferId] and
+        (__ \ "schemeInformation").read[PensionSchemeDetails] and
+        (__ \ "user").read[AuthenticatedUser] and
+        (__ \ "data").read[JsObject] and
+        (__ \ "lastUpdated").read(MongoJavatimeFormats.instantFormat)
+    )(SessionData.apply _)
+
+    val writes: OWrites[SessionData] = OWrites { sd =>
+      Json.obj(
+        "_id"               -> sd.sessionId,
+        "transferId"        -> sd.transferId,
+        "schemeInformation" -> Json.toJson(sd.schemeInformation),
+        "user"              -> Json.toJson(sd.user),
+        "data"              -> Json.toJson(sd.data),
         "lastUpdated"       -> MongoJavatimeFormats.instantFormat.writes(sd.lastUpdated)
       )
     }

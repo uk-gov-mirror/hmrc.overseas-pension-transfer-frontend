@@ -31,7 +31,7 @@ import java.time.{Instant, ZoneOffset, ZonedDateTime}
 class AllTransfersTableViewModelSpec extends AnyFreeSpec with SpecBase with Matchers {
 
   implicit val messages: Messages = stubMessagesApi().preferred(Seq.empty)
-  new TestAppConfig
+  TestAppConfig.appConfigEncryptionOn()
 
   private def textOfHead(h: HeadCell): String = h.content match {
     case Text(s) => s
