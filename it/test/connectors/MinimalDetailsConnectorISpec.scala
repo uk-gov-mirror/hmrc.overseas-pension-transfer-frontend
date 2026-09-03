@@ -34,18 +34,18 @@ class MinimalDetailsConnectorISpec extends BaseISpec with Injecting {
 
   val minimalDetails: MinimalDetails =
     MinimalDetails(
-      email             = "test.user@example.com",
-      isPsaSuspended    = false,
-      organisationName  = None,
+      email = "test.user@example.com",
+      isPsaSuspended = false,
+      organisationName = None,
       individualDetails = Some(
         IndividualDetails(
-          firstName  = "Test",
+          firstName = "Test",
           middleName = Some("Middle"),
-          lastName   = "User"
+          lastName = "User"
         )
       ),
-      rlsFlag           = false,
-      deceasedFlag      = false
+      rlsFlag = false,
+      deceasedFlag = false
     )
 
   "MinimalDetailsConnector.fetch" when {
