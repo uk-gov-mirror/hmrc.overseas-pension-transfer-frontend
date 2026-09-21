@@ -18,23 +18,30 @@ package pages
 
 import play.api.mvc.Call
 import models._
+import scala.annotation.unused
 
-/** Mix this into a Page when you need extra, args to decide navigation (e.g. AuthenticatedUser).
-  *
-  * Example use: case object SubmitToHMRCPage extends QuestionPage[Boolean] with NextPageWith[AuthenticatedUser]
-  */
+/*
+  Mix this into a Page when you need extra args to help with navigation.
+
+  It is used by the following Page instances:-
+   DiscardTransferConfirmPage: to pass version no (String) into the page.
+   SubmitToHMRCPage: to pass AuthenticatedUser into the page.
+   MiniJourneyNextPageWith: to pass SessionData into the page.
+
+  MiniJourneyNextPageWith is used by various pages in package pages.transferDetails.assetsMiniJourneys
+ */
 trait NextPageWith[C] { self: Page =>
 
-  protected def nextPageWith(answers: UserAnswers, context: C): Call =
+  protected def nextPageWith(answers: UserAnswers, @unused context: C): Call =
     nextPageNormalMode(answers)
 
-  protected def nextPageCheckModeWith(answers: UserAnswers, context: C): Call =
+  protected def nextPageCheckModeWith(answers: UserAnswers, @unused context: C): Call =
     nextPageCheckMode(answers)
 
-  protected def nextPageFinalCheckModeWith(answers: UserAnswers, context: C): Call =
+  protected def nextPageFinalCheckModeWith(answers: UserAnswers, @unused context: C): Call =
     nextPageAmendCheckMode(answers)
 
-  protected def nextPageAmendCheckModeWith(answers: UserAnswers, context: C): Call =
+  protected def nextPageAmendCheckModeWith(answers: UserAnswers, @unused context: C): Call =
     nextPageAmendCheckMode(answers)
 
   final def nextPageWith(mode: Mode, answers: UserAnswers, context: C): Call =

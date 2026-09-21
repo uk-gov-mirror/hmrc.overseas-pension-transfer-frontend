@@ -20,7 +20,7 @@ import play.api.mvc.Call
 import controllers.checkYourAnswers.routes
 import uk.gov.hmrc.play.bootstrap.binders.RedirectUrl
 import models._
-
+import scala.annotation.unused
 import scala.language.implicitConversions
 
 trait Page {
@@ -39,10 +39,10 @@ trait Page {
   protected def nextPageCheckMode(answers: UserAnswers): Call =
     throw new NotImplementedError("nextPageCheckMode is not implemented on this page")
 
-  protected def nextPageFinalCheckMode(answers: UserAnswers): Call =
+  protected def nextPageFinalCheckMode(@unused answers: UserAnswers): Call =
     routes.CheckYourAnswersController.onPageLoad()
 
-  protected def nextPageAmendCheckMode(answers: UserAnswers): Call =
+  protected def nextPageAmendCheckMode(@unused answers: UserAnswers): Call =
     controllers.viewandamend.routes.ViewAmendSubmittedController.amend()
 
   def nextPageRecovery(returnUrl: Option[String] = None): Call =

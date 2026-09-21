@@ -26,7 +26,7 @@ import views.utils.ViewBaseSpec
 
 class TransferSubmittedViewSpec extends ViewBaseSpec {
 
-  new TestAppConfig
+  TestAppConfig.appConfigEncryptionOn()
   private val view = applicationBuilder().injector().instanceOf[TransferSubmittedView]
 
   implicit val schemeRequest: SchemeRequest[_] = SchemeRequest(

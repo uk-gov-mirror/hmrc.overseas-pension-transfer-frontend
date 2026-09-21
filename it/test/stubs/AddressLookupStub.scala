@@ -23,13 +23,14 @@ import play.api.test.Helpers.*
 object AddressLookupStub {
 
   def stubPost(url: String, requestBody: Option[String] = None, status: Integer, responseBody: String): StubMapping =
-    stubFor(post(urlMatching(url))
-      .withRequestBody(equalToJson(requestBody.getOrElse("")))
-      .willReturn(
-        aResponse()
-          .withStatus(status)
-          .withBody(responseBody)
-      )
+    stubFor(
+      post(urlMatching(url))
+        .withRequestBody(equalToJson(requestBody.getOrElse("")))
+        .willReturn(
+          aResponse()
+            .withStatus(status)
+            .withBody(responseBody)
+        )
     )
 
   def responsePostPostcode(postcode: String)(status: Int, body: String): Unit = {
@@ -46,7 +47,6 @@ object AddressLookupStub {
     s"""
        |[]
        |""".stripMargin
-
 
   val successResponseJson: String =
     s"""
@@ -122,7 +122,6 @@ object AddressLookupStub {
        |""".stripMargin
 
   def postPostcodeSuccessResponse(): Unit = responsePostPostcode("BB001BB")(OK, successResponseJson)
-
 
   def postPostcodeNoAddressesFoundResponse(): Unit = responsePostPostcode("BB002BB")(OK, noAddressesFoundResponseJson)
 

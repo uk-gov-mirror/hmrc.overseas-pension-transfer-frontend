@@ -16,15 +16,15 @@
 
 package services
 
-import models.QtStatus.Submitted
-import models.dtos.UserAnswersDTO.toUserAnswers
 import com.google.inject.Inject
 import connectors.UserAnswersConnector
+import models.*
+import models.QtStatus.Submitted
+import models.dtos.UserAnswersDTO.toUserAnswers
+import models.responses.*
 import uk.gov.hmrc.http.HeaderCarrier
-import models._
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class CollectSubmittedVersionsService @Inject() (
   userAnswersConnector: UserAnswersConnector
@@ -46,11 +46,13 @@ class CollectSubmittedVersionsService @Inject() (
     def collectVersions: Future[List[UserAnswers]] =
       if (versionNumber == "001") {
         userAnswersConnector.getAnswers(qtReference, pstr, Submitted, Some(versionNumber), srnNumber) map {
-          case Right(dto) => List(toUserAnswers(dto))
-          case Left(_)    => Nil
+          case Right(dto)                        => List(toUserAnswers(dto))
+          case Left(UserAnswersNotFoundResponse) =>
+            Nil
+          case Left(ex)                          =>
+            throw new RuntimeException(ex.toString)
         }
       } else {
-
         val versions = (1 to versionNumber.toInt).toList
 
         versions.foldLeft(Future.successful(List[UserAnswers]())) { case (acc, version) =>
@@ -60,9 +62,11 @@ class CollectSubmittedVersionsService @Inject() (
             case _ => version.toString
           }
           userAnswersConnector.getAnswers(qtReference, pstr, qtStatus, Some(stringifyVersion), srnNumber) flatMap {
-            case Right(dto) =>
+            case Right(dto)                        =>
               acc.map(currentList => toUserAnswers(dto) :: currentList)
-            case Left(_)    => acc
+            case Left(UserAnswersNotFoundResponse) => acc
+            case Left(ex)                          =>
+              throw new RuntimeException(ex.toString)
           }
         }
       }

@@ -26,14 +26,14 @@ import play.api.test.Helpers.*
 import uk.gov.hmrc.govukfrontend.views.Aliases.{HtmlContent, Text}
 import uk.gov.hmrc.govukfrontend.views.viewmodels.table.TableRow
 import utils.DateTimeFormats.{display12h, displayDateUuuu}
-import annotation.nowarn
 
 import java.time.{Instant, ZoneOffset, ZonedDateTime}
+import scala.annotation.nowarn
 
 class PaginatedAllTransfersViewModelSpec extends AnyFreeSpec with SpecBase with Matchers {
 
   implicit val messages: Messages = stubMessagesApi().preferred(Seq.empty)
-  new TestAppConfig
+  TestAppConfig.appConfigEncryptionOn()
 
   private def mkItem(idx: Int, when: Instant): AllTransfersItem =
     AllTransfersItem(

@@ -24,7 +24,10 @@
 @(pageTitle: String, headingKey: String, message: String)(implicit rh: RequestHeader, messages: Messages)
 
 @layout(pageTitle = titleNoForm(pageTitle), showPageFooter = false, showStartFooter = true, showTasklistFooter = false) {
-    @h(headingKey, "xl")
+
+    <h1 class="@{s"govuk-heading-xl"}">
+        @messages(headingKey)
+    </h1>
 
     @p(message)
 }

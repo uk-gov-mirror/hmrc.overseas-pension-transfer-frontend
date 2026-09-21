@@ -114,7 +114,7 @@ class IdentifierActionImplSpec extends AnyFreeSpec with SpecBase with MockitoSug
 
     "must redirect to unauthorised page on unexpected error" in {
       when(mockAuthConnector.authorise(any(), any())(any(), any()))
-        .thenReturn(Future.failed(new RuntimeException("Unexpected error")))
+        .thenReturn(Future.failed(UnsupportedAffinityGroup()))
 
       val result = action.invokeBlock(fakeRequest, (_: IdentifierRequest[AnyContent]) => fail("Should not reach block"))
 

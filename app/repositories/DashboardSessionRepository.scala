@@ -18,7 +18,7 @@ package repositories
 
 import services.EncryptionService
 import uk.gov.hmrc.mongo.MongoComponent
-import org.mongodb.scala.model._
+import org.mongodb.scala.model.*
 import uk.gov.hmrc.mdc.Mdc
 import org.mongodb.scala.bson.conversions.Bson
 import play.api.libs.json.Format
@@ -28,10 +28,10 @@ import models.QtStatus
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import config.FrontendAppConfig
+import models.DashboardData.{encryptedFormat, unencryptedFormat}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
-
 import java.time.Clock
 import java.time.Instant
 import java.time.Period
@@ -49,7 +49,8 @@ class DashboardSessionRepository @Inject() (
     extends PlayMongoRepository[DashboardData](
       collectionName = "dashboard-data",
       mongoComponent = mongoComponent,
-      domainFormat = DashboardData.encryptedFormat(encryptionService),
+      domainFormat = if (appConfig.mongoDBEncryption) { encryptedFormat(encryptionService) }
+      else { unencryptedFormat },
       indexes = Seq(
         IndexModel(
           Indexes.ascending("lastUpdated"),

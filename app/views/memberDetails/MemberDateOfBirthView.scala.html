@@ -48,7 +48,7 @@
                   title = Text(messages("error.summary.title")),
                   errorList = Seq(ErrorLink(
                       Some(s"#value.$fieldToHighlight"),
-                      content = Text(messages(form.errors.head.message))
+                      content = Text(messages(form.errors.head.message, form.errors.head.args*))
                   ))
               ))
             }

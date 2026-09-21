@@ -22,7 +22,7 @@ import models.TransferNumber
 
 import java.util.UUID
 
-object TransferBackendStub extends SpecBase{
+object TransferBackendStub extends SpecBase {
 
   val transferNumber: TransferNumber = TransferNumber(UUID.randomUUID().toString)
 
@@ -145,17 +145,16 @@ object TransferBackendStub extends SpecBase{
        |}
        |""".stripMargin
 
-
   // ----- get specific -----
 
   def stubGetSpecificTransferOk(
-                             referenceId: String,
-                             pstr: String,
-                             qtStatus: String,
-                             dataJson: String,
-                             lastUpdatedIso: String,
-                             versionNumber: Option[String] = None
-                           ): Unit = {
+    referenceId: String,
+    pstr: String,
+    qtStatus: String,
+    dataJson: String,
+    lastUpdatedIso: String,
+    versionNumber: Option[String] = None
+  ): Unit = {
     val base =
       get(urlPathEqualTo(specificUrl(referenceId)))
         .withQueryParam("pstr", equalTo(pstr))
@@ -182,11 +181,11 @@ object TransferBackendStub extends SpecBase{
   }
 
   def stubGetSpecificTransferMalformed(
-                                    referenceId: String,
-                                    pstr: String,
-                                    qtStatus: String,
-                                    versionNumber: Option[String] = None
-                                  ): Unit = {
+    referenceId: String,
+    pstr: String,
+    qtStatus: String,
+    versionNumber: Option[String] = None
+  ): Unit = {
     val base =
       get(urlPathEqualTo(specificUrl(referenceId)))
         .withQueryParam("pstr", equalTo(pstr))
@@ -202,11 +201,11 @@ object TransferBackendStub extends SpecBase{
   }
 
   def stubGetSpecificTransferNotFound(
-                                   referenceId: String,
-                                   pstr: String,
-                                   qtStatus: String,
-                                   versionNumber: Option[String] = None
-                                 ): Unit = {
+    referenceId: String,
+    pstr: String,
+    qtStatus: String,
+    versionNumber: Option[String] = None
+  ): Unit = {
     val base =
       get(urlPathEqualTo(specificUrl(referenceId)))
         .withQueryParam("pstr", equalTo(pstr))
@@ -222,11 +221,11 @@ object TransferBackendStub extends SpecBase{
   }
 
   def stubGetSpecificTransferServerError(
-                                      referenceId: String,
-                                      pstr: String,
-                                      qtStatus: String,
-                                      versionNumber: Option[String] = None
-                                    ): Unit = {
+    referenceId: String,
+    pstr: String,
+    qtStatus: String,
+    versionNumber: Option[String] = None
+  ): Unit = {
     val base =
       get(urlPathEqualTo(specificUrl(referenceId)))
         .withQueryParam("pstr", equalTo(pstr))

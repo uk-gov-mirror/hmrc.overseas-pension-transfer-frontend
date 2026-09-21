@@ -44,25 +44,26 @@ trait WireMockHelper {
 
   def stopServer(): Unit = wireMockServer.stop()
 
-  def stubGet(url: String, response: String, status: Int = OK): StubMapping = {
-    stubFor(get(url)
-      .willReturn(
-        aResponse()
-          .withBody(response)
-          .withStatus(status)
-      ))
-  }
+  def stubGet(url: String, response: String, status: Int = OK): StubMapping =
+    stubFor(
+      get(url)
+        .willReturn(
+          aResponse()
+            .withBody(response)
+            .withStatus(status)
+        )
+    )
 
-  def stubPost(url: String, response: String, status: Int = OK): StubMapping = {
-    stubFor(post(url)
-      .willReturn(
-        aResponse()
-          .withBody(response)
-          .withStatus(status)
-      ))
-  }
+  def stubPost(url: String, response: String, status: Int = OK): StubMapping =
+    stubFor(
+      post(url)
+        .willReturn(
+          aResponse()
+            .withBody(response)
+            .withStatus(status)
+        )
+    )
 
-  def resetWireMock(): Unit = {
+  def resetWireMock(): Unit =
     wireMockServer.resetAll()
-  }
 }

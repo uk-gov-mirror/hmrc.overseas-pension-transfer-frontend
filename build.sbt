@@ -7,6 +7,7 @@ lazy val appName: String = "overseas-pension-transfer-frontend"
 
 ThisBuild / majorVersion := 0
 ThisBuild / scalaVersion := "3.3.7"
+Test / parallelExecution := false
 
 addCommandAlias("runAllChecks", ";clean;compile;scalafmtAll;scalastyle;coverage;test;it/test;coverageReport")
 
@@ -19,7 +20,6 @@ val commonSettings: Seq[String] = Seq(
   "-Wunused:imports",
   "-Wconf:msg=unused import&src=views/.*:s", // False positives found in Twirl scala.html files at line 1:1: unused import
   "-Wconf:msg=unused private member&src=validators/.*:s", // False negative fixed in scala 3.7.0: see https://github.com/scala/scala3/issues/19998
-  "-Wconf:msg=unused explicit parameter&src=pages/.*:s", // NextPageWith - it's not clear that the context argument is used - need a spike to investigate
   "-Werror",
   "-Wconf:src=routes/.*:s",
   "-Wunused:unsafe-warn-patvars",

@@ -16,26 +16,23 @@
 
 package controllers.actions
 
-import models.authentication.AuthenticatedUser
-import utils.AuthSupport
-import play.api.mvc._
 import com.google.inject.Inject
 import config.FrontendAppConfig
-import uk.gov.hmrc.auth.core.retrieve.~
-import play.api.Logging
-import uk.gov.hmrc.http.HeaderCarrier
-import play.api.mvc.Results._
-import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.affinityGroup
-import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.allEnrolments
-import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.internalId
 import controllers.auth.routes
-import uk.gov.hmrc.auth.core.authorise.Predicate
-import uk.gov.hmrc.auth.core._
-import uk.gov.hmrc.play.http.HeaderCarrierConverter
+import models.authentication.AuthenticatedUser
 import models.requests.IdentifierRequest
+import play.api.Logging
+import play.api.mvc.*
+import play.api.mvc.Results.*
+import uk.gov.hmrc.auth.core.*
+import uk.gov.hmrc.auth.core.authorise.Predicate
+import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.{affinityGroup, allEnrolments, internalId}
+import uk.gov.hmrc.auth.core.retrieve.~
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.http.HeaderCarrierConverter
+import utils.AuthSupport
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 trait IdentifierAction extends ActionBuilder[IdentifierRequest, AnyContent]
 
@@ -77,7 +74,7 @@ class IdentifierActionImpl @Inject() (
     case MissingAffinityGroup         =>
       logger.warn("Affinity group required to access this service")
       Redirect(routes.UnauthorisedController.onPageLoad())
-    case e                            =>
+    case e: AuthorisationException    =>
       logger.error("Unexpected error during authorisation", e)
       Redirect(routes.UnauthorisedController.onPageLoad())
   }

@@ -47,19 +47,19 @@ class TransferConnectorISpec extends BaseISpec with Injecting with OptionValues 
 
         result match {
           case Right(dto) =>
-            dto.pstr.value shouldBe pstr.value
+            dto.pstr.value         shouldBe pstr.value
             dto.transfers.nonEmpty shouldBe true
 
             val first = dto.transfers.head
-            first.transferId shouldBe QtNumber("QT564321")
-            first.qtVersion.value shouldBe "001"
+            first.transferId            shouldBe QtNumber("QT564321")
+            first.qtVersion.value       shouldBe "001"
             first.memberFirstName.value shouldBe "David"
-            first.memberSurname.value shouldBe "Warne"
-            first.nino.value shouldBe testNino
-            first.submissionDate.value shouldBe Instant.parse("2025-03-14T00:00:00Z")
-            first.lastUpdated shouldBe empty
-            first.qtStatus.value shouldBe Submitted
-            first.pstrNumber.value shouldBe pstr
+            first.memberSurname.value   shouldBe "Warne"
+            first.nino.value            shouldBe testNino
+            first.submissionDate.value  shouldBe Instant.parse("2025-03-14T00:00:00Z")
+            first.lastUpdated           shouldBe empty
+            first.qtStatus.value        shouldBe Submitted
+            first.pstrNumber.value      shouldBe pstr
 
           case Left(err) =>
             fail(s"Expected Right(dto) but got $err")
@@ -74,8 +74,8 @@ class TransferConnectorISpec extends BaseISpec with Injecting with OptionValues 
 
         result match {
           case Right(dto) =>
-            dto.transfers.size shouldBe 2
-            all(dto.transfers.map(_.isValid)) shouldBe true
+            dto.transfers.size                   shouldBe 2
+            all(dto.transfers.map(_.isValid))    shouldBe true
             all(dto.transfers.map(_.nino.value)) shouldBe testNino
 
           case Left(err) =>
@@ -90,7 +90,7 @@ class TransferConnectorISpec extends BaseISpec with Injecting with OptionValues 
 
         result match {
           case Left(_: AllTransfersUnexpectedError) => succeed
-          case other => fail(s"Expected AllTransfersUnexpectedError but got $other")
+          case other                                => fail(s"Expected AllTransfersUnexpectedError but got $other")
         }
       }
     }
